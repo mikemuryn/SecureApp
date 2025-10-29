@@ -1,0 +1,7 @@
+# Essential packages for SecureApp
+cryptography
+bcrypt
+sqlalchemy
+customtkinter
+passlib
+python-dotenv
