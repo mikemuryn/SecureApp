@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  secureapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: secureapp
+    restart: unless-stopped
+    volumes:
+      # Persist data directories
+      - secureapp-data:/app/data
+      - secureapp-logs:/app/logs
+      - secureapp-temp:/app/temp
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/SecureApp.db
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/SecureApp.log
+    networks:
+      - secureapp-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Development service with volume mounting
+  secureapp-dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: secureapp-dev
+    restart: "no"
+    volumes:
+      # Mount source code for development
+      - .:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/SecureApp.db
+      - LOG_LEVEL=DEBUG
+      - LOG_FILE=/app/logs/SecureApp.log
+    networks:
+      - secureapp-network
+    command: ["python", "main.py"]
+    profiles:
+      - dev
+
+  # Testing service
+  secureapp-test:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: secureapp-test
+    restart: "no"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/test.db
+      - LOG_LEVEL=DEBUG
+    networks:
+      - secureapp-network
+    command: ["pytest", "tests/"]
+    profiles:
+      - test
+
+networks:
+  secureapp-network:
+    driver: bridge
+    name: secureapp-network
+
+volumes:
+  secureapp-data:
+    driver: local
+    name: secureapp-data
+  secureapp-logs:
+    driver: local
+    name: secureapp-logs
+  secureapp-temp:
+    driver: local
+    name: secureapp-temp

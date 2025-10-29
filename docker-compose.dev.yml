@@ -1,0 +1,106 @@
+# Docker development configuration for SecureApp
+
+version: '3.8'
+
+services:
+  # Development database (if using external DB in future)
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: secureapp-postgres
+  #   environment:
+  #     POSTGRES_DB: secureapp
+  #     POSTGRES_USER: secureapp
+  #     POSTGRES_PASSWORD: secureapp_password
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - secureapp-network
+  #   profiles:
+  #     - db
+
+  # Redis for session storage (if needed in future)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: secureapp-redis
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - secureapp-network
+  #   profiles:
+  #     - cache
+
+  # Development application
+  secureapp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: secureapp-dev
+    restart: "no"
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/.mypy_cache
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/SecureApp.db
+      - LOG_LEVEL=DEBUG
+      - LOG_FILE=/app/logs/SecureApp.log
+      - FLASK_ENV=development
+    ports:
+      - "8000:8000"  # For future web interface
+    networks:
+      - secureapp-network
+    command: ["python", "main.py"]
+    profiles:
+      - dev
+
+  # Testing service
+  secureapp-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: secureapp-test
+    restart: "no"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/test.db
+      - LOG_LEVEL=DEBUG
+      - PYTEST_CURRENT_TEST=true
+    networks:
+      - secureapp-network
+    command: ["pytest", "tests/", "-v", "--cov=app"]
+    profiles:
+      - test
+
+  # Linting service
+  secureapp-lint:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: secureapp-lint
+    restart: "no"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - secureapp-network
+    command: ["bash", "-c", "black --check . && flake8 . && mypy app/"]
+    profiles:
+      - lint
+
+networks:
+  secureapp-network:
+    driver: bridge
+    name: secureapp-dev-network
+
+volumes:
+  postgres-data:
+    driver: local
+    name: secureapp-postgres-data
+  redis-data:
+    driver: local
+    name: secureapp-redis-data

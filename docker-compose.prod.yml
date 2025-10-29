@@ -1,0 +1,76 @@
+# Production Docker Compose for SecureApp
+
+version: '3.8'
+
+services:
+  secureapp:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: secureapp-prod
+    restart: unless-stopped
+    volumes:
+      # Persist data directories
+      - secureapp-data:/app/data
+      - secureapp-logs:/app/logs
+      - secureapp-temp:/app/temp
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=sqlite:///app/data/database/SecureApp.db
+      - LOG_LEVEL=INFO
+      - LOG_FILE=/app/logs/SecureApp.log
+    networks:
+      - secureapp-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backup service (optional)
+  secureapp-backup:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: secureapp-backup
+    restart: "no"
+    volumes:
+      - secureapp-data:/app/data:ro
+      - secureapp-backups:/backups
+    environment:
+      - PYTHONPATH=/app
+    networks:
+      - secureapp-network
+    command: ["bash", "-c", "cp -r /app/data/* /backups/ && echo 'Backup completed'"]
+    profiles:
+      - backup
+
+networks:
+  secureapp-network:
+    driver: bridge
+    name: secureapp-prod-network
+
+volumes:
+  secureapp-data:
+    driver: local
+    name: secureapp-prod-data
+  secureapp-logs:
+    driver: local
+    name: secureapp-prod-logs
+  secureapp-temp:
+    driver: local
+    name: secureapp-prod-temp
+  secureapp-backups:
+    driver: local
+    name: secureapp-prod-backups

@@ -1,0 +1,23 @@
+# SecureApp Requirements
+# Core Dependencies
+cryptography>=41.0.0
+bcrypt>=4.0.0
+sqlalchemy>=2.0.0
+
+# GUI Framework
+customtkinter>=5.2.0
+
+# Password Management
+passlib>=1.7.4
+argon2-cffi>=21.3.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Development Tools
+pytest>=7.0.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Additional Security
+argon2-cffi-bindings>=21.2.0
