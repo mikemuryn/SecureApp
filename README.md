@@ -8,6 +8,10 @@ This project adheres to the [Engineering Standards Master Document](./ENGINEERIN
 maintained by **Mike Muryn (Revision 3.0, October 2025)**.
 All code must comply with its guidelines for formatting, testing, documentation, and CI/CD enforcement.
 
+### 🗺️ Development Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for the complete development plan, feature priorities, and future enhancements.
+
 ## 🔐 Security Features
 
 - **Strong Authentication**: Password-based login with account lockout protection
