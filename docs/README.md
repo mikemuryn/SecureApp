@@ -23,32 +23,35 @@ SecureApp is a desktop application for secure management of confidential files w
 ### Setup
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/mikemuryn/SecureApp.git
-   cd SecureApp
-   ```
+
+    ```bash
+    git clone https://github.com/mikemuryn/SecureApp.git
+    cd SecureApp
+    ```
 
 2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 3. Run the application:
-   ```bash
-   python main.py
-   ```
+    ```bash
+    python main.py
+    ```
 
 ### Docker Installation
 
 1. Build the Docker image:
-   ```bash
-   docker build -t secureapp .
-   ```
+
+    ```bash
+    docker build -t secureapp .
+    ```
 
 2. Run with Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
+    ```bash
+    docker-compose up -d
+    ```
 
 ## Usage
 
@@ -75,17 +78,20 @@ SecureApp is a desktop application for secure management of confidential files w
 ## Security Features
 
 ### Authentication
+
 - Password strength validation
 - Account lockout after failed attempts
 - Session timeout protection
 - Secure password hashing with bcrypt
 
 ### Encryption
+
 - AES-256 encryption for all files
 - Unique encryption keys per file
 - Secure key derivation using PBKDF2
 
 ### Audit Trail
+
 - Complete activity logging
 - User action tracking
 - Security event monitoring
@@ -143,6 +149,7 @@ docker run -v $(pwd):/app secureapp-dev
 ### Settings File
 
 Edit `config/settings.py` to modify:
+
 - Password requirements
 - File size limits
 - Session timeouts
@@ -153,9 +160,10 @@ Edit `config/settings.py` to modify:
 ### Common Issues
 
 1. **ModuleNotFoundError**: Install missing dependencies
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 2. **Database Errors**: Check file permissions and disk space
 
@@ -187,6 +195,7 @@ For security issues, please email security@example.com instead of using the issu
 ## Support
 
 For support and questions:
+
 - Create an issue on GitHub
 - Check the documentation
 - Review the troubleshooting guide

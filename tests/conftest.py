@@ -1,18 +1,14 @@
 # Test fixtures and utilities for SecureApp
 
-import pytest
-import tempfile
 import os
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
+import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
+from unittest.mock import Mock
 
-from app.models.database import DatabaseManager, User, SecureFile
-from app.auth.authentication import AuthenticationManager
-from app.auth.session_manager import SessionManager
-from app.encryption.file_crypto import FileEncryption
-from app.utils.audit_logger import AuditLogger
-from app.utils.file_manager import FileAccessManager
+import pytest
+
+from app.models.database import DatabaseManager, SecureFile, User
 
 
 @pytest.fixture
@@ -25,7 +21,7 @@ def temp_directory():
 @pytest.fixture
 def temp_db_file():
     """Create a temporary database file"""
-    with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
         db_path = tmp.name
     yield f"sqlite:///{db_path}"
     os.unlink(db_path)
@@ -34,7 +30,7 @@ def temp_db_file():
 @pytest.fixture
 def temp_log_file():
     """Create a temporary log file"""
-    with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
         tmp_path = tmp.name
     yield tmp_path
     os.unlink(tmp_path)
@@ -44,10 +40,10 @@ def temp_log_file():
 def sample_user_data():
     """Sample user data for testing"""
     return {
-        'username': 'testuser',
-        'email': 'test@example.com',
-        'password': 'TestPassword123!',
-        'role': 'user'
+        "username": "testuser",
+        "email": "test@example.com",
+        "password": "TestPassword123!",
+        "role": "user",
     }
 
 
@@ -55,10 +51,10 @@ def sample_user_data():
 def sample_admin_data():
     """Sample admin user data for testing"""
     return {
-        'username': 'admin',
-        'email': 'admin@example.com',
-        'password': 'AdminPassword123!',
-        'role': 'admin'
+        "username": "admin",
+        "email": "admin@example.com",
+        "password": "AdminPassword123!",
+        "role": "admin",
     }
 
 
@@ -67,9 +63,9 @@ def mock_user():
     """Create a mock user object"""
     user = Mock(spec=User)
     user.id = 1
-    user.username = 'testuser'
-    user.email = 'test@example.com'
-    user.role = 'user'
+    user.username = "testuser"
+    user.email = "test@example.com"
+    user.role = "user"
     user.is_active = True
     user.created_at = datetime.utcnow()
     user.last_login = None
@@ -83,9 +79,9 @@ def mock_admin_user():
     """Create a mock admin user object"""
     user = Mock(spec=User)
     user.id = 2
-    user.username = 'admin'
-    user.email = 'admin@example.com'
-    user.role = 'admin'
+    user.username = "admin"
+    user.email = "admin@example.com"
+    user.role = "admin"
     user.is_active = True
     user.created_at = datetime.utcnow()
     user.last_login = None
@@ -99,10 +95,10 @@ def mock_secure_file():
     """Create a mock secure file object"""
     file_obj = Mock(spec=SecureFile)
     file_obj.id = 1
-    file_obj.filename = 'test_file.txt'
-    file_obj.original_path = '/path/to/original/test_file.txt'
-    file_obj.encrypted_path = '/path/to/encrypted/test_file.txt.enc'
-    file_obj.file_hash = 'abcd1234efgh5678'
+    file_obj.filename = "test_file.txt"
+    file_obj.original_path = "/path/to/original/test_file.txt"
+    file_obj.encrypted_path = "/path/to/encrypted/test_file.txt.enc"
+    file_obj.file_hash = "abcd1234efgh5678"
     file_obj.file_size = 1024
     file_obj.owner_id = 1
     file_obj.created_at = datetime.utcnow()
@@ -116,8 +112,8 @@ def mock_secure_file():
 def mock_session():
     """Create a mock session object"""
     session = Mock()
-    session.session_id = 'test_session_123'
-    session.user_id = 'testuser'
+    session.session_id = "test_session_123"
+    session.user_id = "testuser"
     session.created_at = datetime.utcnow()
     session.expires_at = datetime.utcnow() + timedelta(hours=1)
     session.is_active = True
@@ -127,7 +123,10 @@ def mock_session():
 @pytest.fixture
 def sample_file_content():
     """Sample file content for testing"""
-    return "This is sample file content for testing encryption and decryption functionality."
+    return (
+        "This is sample file content for testing "
+        "encryption and decryption functionality."
+    )
 
 
 @pytest.fixture
@@ -153,7 +152,7 @@ def weak_passwords():
         "qwerty",
         "1234567890",
         "letmein",
-        "welcome"
+        "welcome",
     ]
 
 
@@ -165,7 +164,7 @@ def strong_passwords():
         "MySecure@Pass2024",
         "Complex#Pass99$",
         "Super$ecure123!",
-        "Test@Pass456#"
+        "Test@Pass456#",
     ]
 
 
@@ -179,7 +178,7 @@ def invalid_emails():
         "test.example.com",
         "test@.com",
         "test@example.",
-        ""
+        "",
     ]
 
 
@@ -190,7 +189,7 @@ def valid_emails():
         "test@example.com",
         "user.name@domain.co.uk",
         "admin+test@company.org",
-        "test123@subdomain.example.net"
+        "test123@subdomain.example.net",
     ]
 
 
@@ -198,10 +197,10 @@ def valid_emails():
 def mock_file_paths():
     """Mock file paths for testing"""
     return {
-        'original': '/tmp/test_file.txt',
-        'encrypted': '/tmp/test_file.txt.enc',
-        'decrypted': '/tmp/test_file_decrypted.txt',
-        'temp': '/tmp/temp_file.txt'
+        "original": "/tmp/test_file.txt",
+        "encrypted": "/tmp/test_file.txt.enc",
+        "decrypted": "/tmp/test_file_decrypted.txt",
+        "temp": "/tmp/temp_file.txt",
     }
 
 
@@ -210,26 +209,26 @@ def audit_events():
     """Sample audit events for testing"""
     return [
         {
-            'action': 'LOGIN',
-            'username': 'testuser',
-            'resource': 'authentication',
-            'success': True,
-            'timestamp': datetime.utcnow()
+            "action": "LOGIN",
+            "username": "testuser",
+            "resource": "authentication",
+            "success": True,
+            "timestamp": datetime.utcnow(),
         },
         {
-            'action': 'FILE_UPLOAD',
-            'username': 'testuser',
-            'resource': 'test_file.txt',
-            'success': True,
-            'timestamp': datetime.utcnow()
+            "action": "FILE_UPLOAD",
+            "username": "testuser",
+            "resource": "test_file.txt",
+            "success": True,
+            "timestamp": datetime.utcnow(),
         },
         {
-            'action': 'FILE_DOWNLOAD',
-            'username': 'testuser',
-            'resource': 'test_file.txt',
-            'success': True,
-            'timestamp': datetime.utcnow()
-        }
+            "action": "FILE_DOWNLOAD",
+            "username": "testuser",
+            "resource": "test_file.txt",
+            "success": True,
+            "timestamp": datetime.utcnow(),
+        },
     ]
 
 
@@ -262,15 +261,15 @@ def performance_test_files():
     """Create files of various sizes for performance testing"""
     files = {}
     sizes = [1024, 10240, 102400, 1048576]  # 1KB, 10KB, 100KB, 1MB
-    
+
     for size in sizes:
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
-            content = 'A' * size
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
+            content = "A" * size
             tmp.write(content)
-            files[f'{size}_bytes'] = tmp.name
-    
+            files[f"{size}_bytes"] = tmp.name
+
     yield files
-    
+
     # Cleanup
     for file_path in files.values():
         os.unlink(file_path)
@@ -287,7 +286,7 @@ def malicious_filenames():
         "test'; DROP TABLE users; --.txt",
         "test\x00null.txt",
         "test\nnewline.txt",
-        "test\ttab.txt"
+        "test\ttab.txt",
     ]
 
 
@@ -300,5 +299,5 @@ def sql_injection_attempts():
         "admin'--",
         "admin'/*",
         "' UNION SELECT * FROM users--",
-        "1' OR '1'='1' --"
+        "1' OR '1'='1' --",
     ]

@@ -1,8 +1,8 @@
-version: '3.8'
+version: "3.8"
 
 services:
   secureapp:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: secureapp
@@ -29,7 +29,7 @@ services:
 
   # Development service with volume mounting
   secureapp-dev:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: secureapp-dev
@@ -52,7 +52,7 @@ services:
 
   # Testing service
   secureapp-test:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: secureapp-test

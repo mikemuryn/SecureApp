@@ -31,12 +31,12 @@ check_docker() {
         print_error "Docker is not installed. Please install Docker first."
         exit 1
     fi
-    
+
     if ! command -v docker-compose &> /dev/null; then
         print_error "Docker Compose is not installed. Please install Docker Compose first."
         exit 1
     fi
-    
+
     print_status "Docker and Docker Compose are available"
 }
 
@@ -116,7 +116,7 @@ show_help() {
 # Main script logic
 main() {
     check_docker
-    
+
     case "${1:-help}" in
         build)
             build_app

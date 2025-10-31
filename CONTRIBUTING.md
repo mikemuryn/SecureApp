@@ -17,31 +17,35 @@ This project adheres to a code of conduct. By participating, you are expected to
 ### Development Setup
 
 1. **Fork and Clone**
-   ```bash
-   git clone https://github.com/your-username/SecureApp.git
-   cd SecureApp
-   ```
+
+    ```bash
+    git clone https://github.com/your-username/SecureApp.git
+    cd SecureApp
+    ```
 
 2. **Create Virtual Environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
 
 3. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 4. **Install Development Dependencies**
-   ```bash
-   pip install pytest pytest-cov black flake8 mypy pre-commit
-   ```
+
+    ```bash
+    pip install pytest pytest-cov black flake8 mypy pre-commit
+    ```
 
 5. **Setup Pre-commit Hooks**
-   ```bash
-   pre-commit install
-   ```
+    ```bash
+    pre-commit install
+    ```
 
 ## Development Workflow
 
@@ -56,49 +60,53 @@ This project adheres to a code of conduct. By participating, you are expected to
 ### Making Changes
 
 1. **Create a Feature Branch**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
 
 2. **Make Your Changes**
-   - Write clean, readable code
-   - Add tests for new functionality
-   - Update documentation as needed
+    - Write clean, readable code
+    - Add tests for new functionality
+    - Update documentation as needed
 
 3. **Test Your Changes**
-   ```bash
-   # Run all tests
-   pytest
-   
-   # Run with coverage
-   pytest --cov=app
-   
-   # Run specific tests
-   pytest tests/test_auth.py
-   ```
+
+    ```bash
+    # Run all tests
+    pytest
+
+    # Run with coverage
+    pytest --cov=app
+
+    # Run specific tests
+    pytest tests/test_auth.py
+    ```
 
 4. **Code Quality Checks**
-   ```bash
-   # Format code
-   black .
-   
-   # Lint code
-   flake8 .
-   
-   # Type checking
-   mypy app/
-   ```
+
+    ```bash
+    # Format code
+    black .
+
+    # Lint code
+    flake8 .
+
+    # Type checking
+    mypy app/
+    ```
 
 5. **Commit Your Changes**
-   ```bash
-   git add .
-   git commit -m "feat: add new authentication feature"
-   ```
+
+    ```bash
+    git add .
+    git commit -m "feat: add new authentication feature"
+    ```
 
 6. **Push and Create Pull Request**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+    ```bash
+    git push origin feature/your-feature-name
+    ```
 
 ## Coding Standards
 
@@ -131,25 +139,28 @@ This project adheres to a code of conduct. By participating, you are expected to
 ### Before Submitting
 
 1. **Ensure Tests Pass**
-   ```bash
-   pytest
-   ```
+
+    ```bash
+    pytest
+    ```
 
 2. **Check Code Quality**
-   ```bash
-   black --check .
-   flake8 .
-   mypy app/
-   ```
+
+    ```bash
+    black --check .
+    flake8 .
+    mypy app/
+    ```
 
 3. **Update Documentation**
-   - Update README.md if needed
-   - Add/update docstrings
-   - Update CHANGELOG.md
+    - Update README.md if needed
+    - Add/update docstrings
+    - Update CHANGELOG.md
 
 ### PR Description
 
 Include:
+
 - Description of changes
 - Motivation for the change
 - Testing performed
@@ -168,6 +179,7 @@ Include:
 ### Bug Reports
 
 Include:
+
 - Clear description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
@@ -177,6 +189,7 @@ Include:
 ### Feature Requests
 
 Include:
+
 - Clear description of the feature
 - Use case and motivation
 - Proposed implementation (if you have ideas)
@@ -195,6 +208,7 @@ Include:
 ### Pre-commit Hooks
 
 Pre-commit hooks run automatically on commit:
+
 - Code formatting (black)
 - Linting (flake8)
 - Type checking (mypy)
@@ -258,6 +272,7 @@ pytest --cov=app --cov-report=html
 ## Recognition
 
 Contributors will be recognized in:
+
 - CONTRIBUTORS.md file
 - Release notes
 - Project documentation

@@ -1,6 +1,6 @@
 # Docker development configuration for SecureApp
 
-version: '3.8'
+version: "3.8"
 
 services:
   # Development database (if using external DB in future)
@@ -48,7 +48,7 @@ services:
       - LOG_FILE=/app/logs/SecureApp.log
       - FLASK_ENV=development
     ports:
-      - "8000:8000"  # For future web interface
+      - "8000:8000" # For future web interface
     networks:
       - secureapp-network
     command: ["python", "main.py"]

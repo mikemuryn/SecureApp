@@ -1,3 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+.venv/
+venv/
+.tox/
+.mypy_cache/
+.pytest_cache/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build/Dist
+build/
+dist/
+*.egg-info/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local data/logs
+data/**
+!data/.gitkeep
+logs/**
+!logs/.gitkeep
+*.db
+*.sqlite
+
+# Env files
+.env
+.env.*
+
+# Docker
+.docker/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -2,6 +2,12 @@
 
 A standalone desktop application for secure management of confidential trading algorithms and project files with robust authentication and encryption.
 
+### 🧭 Engineering Standards
+
+This project adheres to the [Engineering Standards Master Document](./ENGINEERING_STANDARDS_MASTER.md),
+maintained by **Mike Muryn (Revision 3.0, October 2025)**.
+All code must comply with its guidelines for formatting, testing, documentation, and CI/CD enforcement.
+
 ## 🔐 Security Features
 
 - **Strong Authentication**: Password-based login with account lockout protection
@@ -21,29 +27,28 @@ A standalone desktop application for secure management of confidential trading a
 ### Installation
 
 1. **Clone or download the application**:
-   ```bash
-   cd SecureApp
-   ```
+
+    ```bash
+    cd SecureApp
+    ```
 
 2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 3. **Run the application**:
-   ```bash
-   python main.py
-   ```
+    ```bash
+    python main.py
+    ```
 
-### Default Login
+### First-Run Admin Bootstrap
 
-- **Username**: `admin`
-- **Password**: `Admin123!`
-- **Role**: Administrator
+- On first run, an admin user is bootstrapped.
+- Configure bootstrap values via environment variables (see `.env.example` section below) or change the admin password immediately after login.
 
-**⚠️ Important**: Change the default admin password immediately after first login!
-
-## 📁 Project Structure
+Project Structure
 
 ```
 SecureApp/
@@ -68,17 +73,20 @@ SecureApp/
 ## 🔧 Features
 
 ### File Management
+
 - **Upload**: Encrypt and store confidential files
 - **Download**: Decrypt and access files with password
 - **Delete**: Remove files (owner or admin only)
 - **List**: View all accessible files with metadata
 
 ### User Management (Admin Only)
+
 - **Create Users**: Add new users with different roles
 - **Role Assignment**: Admin, User, or Read-only permissions
 - **Password Management**: Strong password requirements
 
 ### Security Monitoring (Admin Only)
+
 - **Audit Logs**: View all user activities and security events
 - **Failed Login Tracking**: Monitor authentication attempts
 - **File Access Logging**: Track all file operations
@@ -86,18 +94,21 @@ SecureApp/
 ## 🛡️ Security Implementation
 
 ### Encryption
+
 - **Algorithm**: AES-256 encryption
 - **Key Derivation**: PBKDF2 with 100,000 iterations
 - **Salt**: Random 16-byte salt per file
 - **Password**: User password required for encryption/decryption
 
 ### Authentication
+
 - **Password Hashing**: bcrypt with salt
 - **Session Management**: Secure tokens with timeout
 - **Account Lockout**: 5 failed attempts = 15-minute lockout
 - **Password Requirements**: 8+ chars, mixed case, numbers, special chars
 
 ### Database Security
+
 - **SQLite**: Local encrypted database
 - **User Isolation**: Users can only access their own files
 - **Admin Override**: Administrators have full access
@@ -113,9 +124,26 @@ Edit `config/settings.py` to customize:
 - **Logging levels**
 - **Database location**
 
+You can also override configuration via environment variables (recommended). See `.env.example` for common variables.
+
+### Environment Variables
+
+- `LOG_LEVEL` (default: INFO)
+- `DATA_DIR` (default: ./data)
+- `ENCRYPTED_DIR` (default: ./data/encrypted)
+- `DATABASE_DIR` (default: ./data/database)
+- `LOGS_DIR` (default: ./logs)
+- `SESSION_TIMEOUT` (seconds, default: 1800)
+- `MAX_LOGIN_ATTEMPTS` (default: 5)
+- `LOCKOUT_DURATION` (seconds, default: 900)
+- `BOOTSTRAP_ADMIN_USERNAME` (default: admin)
+- `BOOTSTRAP_ADMIN_EMAIL` (default: admin@example.com)
+- `BOOTSTRAP_ADMIN_PASSWORD` (one-time strong password; if empty, prompt on first run)
+
 ## 🔍 Usage Examples
 
 ### Uploading a File
+
 1. Login to the application
 2. Go to "File Management" tab
 3. Click "Select File to Upload"
@@ -124,6 +152,7 @@ Edit `config/settings.py` to customize:
 6. File is encrypted and stored securely
 
 ### Downloading a File
+
 1. Select a file from the list
 2. Click "Download Selected"
 3. Enter your password for decryption
@@ -131,6 +160,7 @@ Edit `config/settings.py` to customize:
 5. File is decrypted and saved
 
 ### Creating Users (Admin)
+
 1. Login as admin
 2. Go to "User Management" tab
 3. Fill in user details
@@ -150,15 +180,18 @@ Edit `config/settings.py` to customize:
 ### Common Issues
 
 **"Database initialization failed"**
+
 - Ensure write permissions in the application directory
 - Check if SQLite is properly installed
 
 **"Login failed"**
+
 - Verify username and password
 - Check if account is locked (wait 15 minutes)
 - Ensure caps lock is off
 
 **"File upload failed"**
+
 - Check file size (max 100MB)
 - Ensure sufficient disk space
 - Verify file permissions

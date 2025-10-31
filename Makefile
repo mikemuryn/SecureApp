@@ -10,8 +10,8 @@ help:
 	@echo "  test         Run tests"
 	@echo "  test-cov     Run tests with coverage"
 	@echo "  lint         Run linting checks"
-	@echo "  format       Format code with black"
-	@echo "  type-check   Run type checking with mypy"
+	@echo "  format       Format code with python -m black"
+	@echo "  type-check   Run type checking with python -m mypy"
 	@echo "  security     Run security checks"
 	@echo "  clean        Clean temporary files"
 	@echo "  build        Build package"
@@ -24,27 +24,27 @@ install:
 
 install-dev:
 	pip install -r requirements.txt
-	pip install pytest pytest-cov black flake8 mypy bandit safety pre-commit
+	pip install python -m pytest python -m pytest-cov python -m black python -m flake8 python -m mypy bandit safety pre-commit
 	pre-commit install
 
 # Testing
 test:
-	pytest tests/
+	python -m pytest tests/
 
 test-cov:
-	pytest tests/ --cov=app --cov-report=html --cov-report=xml
+	python -m pytest tests/ --cov=app --cov-report=html --cov-report=xml
 
 # Code Quality
 lint:
-	flake8 app/ tests/
-	black --check app/ tests/
+	python -m flake8 app/ tests/
+	python -m black --check app/ tests/
 
 format:
-	black app/ tests/
+	python -m black app/ tests/
 	isort app/ tests/
 
 type-check:
-	mypy app/
+	python -m mypy app/
 
 # Security
 security:
@@ -60,8 +60,8 @@ clean:
 	rm -rf dist/
 	rm -rf .coverage
 	rm -rf htmlcov/
-	rm -rf .pytest_cache/
-	rm -rf .mypy_cache/
+	rm -rf .python -m pytest_cache/
+	rm -rf .python -m mypy_cache/
 
 # Build
 build:

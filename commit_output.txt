@@ -1,0 +1,44 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/site-packages/pre_commit/__main__.py", line 3, in <module>
+    from pre_commit.main import main
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/site-packages/pre_commit/main.py", line 9, in <module>
+    import pre_commit.constants as C
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/site-packages/pre_commit/constants.py", line 3, in <module>
+    import importlib.metadata
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/importlib/metadata/__init__.py", line 10, in <module>
+    import inspect
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/inspect.py", line 145, in <module>
+    import ast
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/ast.py", line 322, in <module>
+    _line_pattern = re.compile(r"(.*?(?:\r\n|\n|\r|$))")
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/__init__.py", line 289, in compile
+    return _compile(pattern, flags)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/__init__.py", line 350, in _compile
+    p = _compiler.compile(pattern, flags)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_compiler.py", line 748, in compile
+    p = _parser.parse(p, flags)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 980, in parse
+    p = _parse_sub(source, state, flags & SRE_FLAG_VERBOSE, 0)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 459, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+                ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       not nested and not items))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 863, in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 459, in _parse_sub
+    itemsappend(_parse(source, state, verbose, nested + 1,
+                ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                       not nested and not items))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 863, in _parse
+    p = _parse_sub(source, state, sub_verbose, nested + 1)
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 475, in _parse_sub
+    if not item:
+           ^^^^
+  File "/home/mikemuryn/miniconda3/envs/secureapp/lib/python3.13/re/_parser.py", line 163, in __len__
+    def __len__(self):
+
+KeyboardInterrupt

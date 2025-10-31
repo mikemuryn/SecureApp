@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
 - Initial release of SecureApp
 - User authentication system
 - File encryption/decryption
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite
 
 ### Security
+
 - AES-256 file encryption
 - bcrypt password hashing
 - Session timeout protection
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-01-XX
 
 ### Added
+
 - Complete authentication system with password hashing
 - File encryption/decryption with AES-256
 - Session management with automatic timeouts
@@ -44,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation and API reference
 
 ### Security
+
 - Strong password requirements
 - Account lockout after failed attempts
 - Secure session handling
@@ -52,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validation and sanitization
 
 ### Technical
+
 - Python 3.8+ support
 - Modular architecture
 - Comprehensive error handling

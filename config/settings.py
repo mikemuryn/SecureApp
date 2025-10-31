@@ -1,7 +1,7 @@
 """
 SecureApp - Configuration Settings
 """
-import os
+
 from pathlib import Path
 
 # Application paths
@@ -30,7 +30,7 @@ REQUIRE_SPECIAL_CHARS = True
 
 # File settings
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
-ALLOWED_EXTENSIONS = {'.py', '.txt', '.md', '.json', '.csv', '.xlsx', '.pdf'}
+ALLOWED_EXTENSIONS = {".py", ".txt", ".md", ".json", ".csv", ".xlsx", ".pdf"}
 
 # Database settings
 DATABASE_URL = f"sqlite:///{DATABASE_DIR}/SecureApp.db"

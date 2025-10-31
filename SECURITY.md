@@ -20,6 +20,7 @@ Security vulnerabilities should not be reported through public GitHub issues.
 Send an email to: **security@example.com**
 
 Include the following information:
+
 - Description of the vulnerability
 - Steps to reproduce the issue
 - Potential impact assessment
@@ -59,23 +60,27 @@ Include the following information:
 ## Security Features
 
 ### Authentication
+
 - Strong password requirements
 - Account lockout after failed attempts
 - Session timeout protection
 - Secure password hashing with bcrypt
 
 ### Encryption
+
 - AES-256 encryption for all files
 - Unique encryption keys per file
 - Secure key derivation using PBKDF2
 
 ### Audit Trail
+
 - Complete activity logging
 - User action tracking
 - Security event monitoring
 - Compliance reporting
 
 ### Data Protection
+
 - Encrypted file storage
 - Secure database connections
 - Temporary file cleanup
@@ -93,6 +98,7 @@ We regularly perform security testing including:
 ## Security Updates
 
 Security updates are released as:
+
 - **Critical**: Immediate release (within 24 hours)
 - **High**: Within 7 days
 - **Medium**: Within 30 days
