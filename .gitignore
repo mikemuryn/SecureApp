@@ -12,6 +12,7 @@ venv/
 # IDE/Editor
 .vscode/
 .idea/
+.cursor/
 *.code-workspace
 
 # OS
@@ -177,22 +178,28 @@ dmypy.json
 # Project specific
 temp/
 *.db
+*.sqlite-wal
+*.sqlite-shm
 *.log
 logs/
 data/encrypted/
-data/database/*.db
+data/database/*
+!data/database/.gitkeep
+backups/
+.theme_preference.json
 
 # Temporary development files
 commit_output.txt
 encrypted/
 node_modules/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Security scan reports
+*-report.json
+bandit-report.json
+safety-report.json
+
+# Pre-commit hooks cache
+.pre-commit/
 
 # OS
 .DS_Store
