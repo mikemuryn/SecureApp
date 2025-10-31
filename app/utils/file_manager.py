@@ -246,15 +246,19 @@ class FileAccessManager:
             )
             return False, None, f"Download failed: {str(e)}"
 
-    def list_user_files(self, username: str) -> List[Dict]:
+    def list_user_files(
+        self, username: str, limit: Optional[int] = None, offset: int = 0
+    ) -> tuple[List[Dict], int]:
         """
-        List files accessible to user
+        List files accessible to user with pagination support
 
         Args:
             username: Username
+            limit: Maximum number of files to return (None for all)
+            offset: Number of files to skip for pagination
 
         Returns:
-            List of file information dictionaries
+            Tuple of (list of file information dictionaries, total count)
         """
         try:
             session = self.db_manager.get_session()
@@ -263,15 +267,23 @@ class FileAccessManager:
 
                 user = session.query(User).filter(User.username == username).first()
                 if not user:
-                    return []
+                    return [], 0
 
                 # Admin users can see all files (current versions only)
                 if user.role == "admin":
-                    all_files = (
+                    query = (
                         session.query(SecureFile)
                         .filter(SecureFile.is_current_version == True)  # noqa: E712
-                        .all()
+                        .order_by(SecureFile.created_at.desc())
                     )
+                    total_count = query.count()
+
+                    if limit is not None:
+                        query = query.offset(offset).limit(limit)
+                    else:
+                        query = query.offset(offset)
+
+                    all_files = query.all()
                     files = []
                     for file in all_files:
                         tags = [tag.tag_name for tag in file.tags]
@@ -288,17 +300,25 @@ class FileAccessManager:
                                 "version": file.version,
                             }
                         )
-                    return files
+                    return files, total_count
 
                 # Regular users see only their own files (current versions only)
-                owned_files = (
+                query = (
                     session.query(SecureFile)
                     .filter(
                         SecureFile.owner_id == user.id,
                         SecureFile.is_current_version == True,  # noqa: E712
                     )
-                    .all()
+                    .order_by(SecureFile.created_at.desc())
                 )
+                total_count = query.count()
+
+                if limit is not None:
+                    query = query.offset(offset).limit(limit)
+                else:
+                    query = query.offset(offset)
+
+                owned_files = query.all()
 
                 files = []
                 for file in owned_files:
@@ -317,14 +337,14 @@ class FileAccessManager:
                         }
                     )
 
-                return files
+                return files, total_count
 
             finally:
                 self.db_manager.close_session(session)
 
         except Exception as e:
             logger.error(f"Failed to list files for {username}: {e}")
-            return []
+            return [], 0
 
     def delete_file(self, file_id: int, username: str) -> tuple[bool, str]:
         """
@@ -726,7 +746,7 @@ class FileAccessManager:
     def export_file_list(self, username: str, export_path: Path) -> tuple[bool, str]:
         """Export file list to CSV"""
         try:
-            files = self.list_user_files(username)
+            files, _ = self.list_user_files(username)
             with open(export_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(
                     f,

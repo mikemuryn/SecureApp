@@ -10,6 +10,11 @@ DATA_DIR = BASE_DIR / "data"
 ENCRYPTED_DIR = DATA_DIR / "encrypted"
 DATABASE_DIR = DATA_DIR / "database"
 LOGS_DIR = BASE_DIR / "logs"
+BACKUP_DIR = BASE_DIR / "backups"
+
+# Backup settings
+BACKUP_ENABLED = True
+BACKUP_INTERVAL_HOURS = 24  # Daily backups by default
 
 # Security settings
 ENCRYPTION_KEY_SIZE = 32  # 256 bits
@@ -41,5 +46,5 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 LOG_FILE = LOGS_DIR / "SecureApp.log"
 
 # Create directories if they don't exist
-for directory in [DATA_DIR, ENCRYPTED_DIR, DATABASE_DIR, LOGS_DIR]:
+for directory in [DATA_DIR, ENCRYPTED_DIR, DATABASE_DIR, LOGS_DIR, BACKUP_DIR]:
     directory.mkdir(parents=True, exist_ok=True)

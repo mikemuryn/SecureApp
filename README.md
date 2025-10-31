@@ -43,9 +43,13 @@ See [ROADMAP.md](./ROADMAP.md) for the complete development plan, feature priori
     ```
 
 3. **Run the application**:
+
     ```bash
     python main.py
     ```
+
+4. **Read the User Guide** (recommended for new users):
+   See [docs/USER_GUIDE.md](./docs/USER_GUIDE.md) for comprehensive usage instructions.
 
 ### First-Run Admin Bootstrap
 
@@ -144,6 +148,29 @@ You can also override configuration via environment variables (recommended). See
 - `BOOTSTRAP_ADMIN_EMAIL` (default: admin@example.com)
 - `BOOTSTRAP_ADMIN_PASSWORD` (one-time strong password; if empty, prompt on first run)
 
+## 💻 Command Line Interface (CLI)
+
+SecureApp provides a CLI for automation and scripting:
+
+```bash
+# List files
+python cli.py list --username youruser
+
+# Upload a file
+python cli.py upload --username youruser --file /path/to/file.txt
+
+# Download a file
+python cli.py download --username youruser --file-id 123 --output /path/to/save
+
+# Delete a file
+python cli.py delete --username youruser --file-id 123 --yes
+
+# Create backup (admin only)
+python cli.py backup --username admin --output /backup/path
+```
+
+For more CLI options, run `python cli.py --help` or see [docs/USER_GUIDE.md](./docs/USER_GUIDE.md).
+
 ## 🔍 Usage Examples
 
 ### Uploading a File
@@ -175,9 +202,16 @@ You can also override configuration via environment variables (recommended). See
 
 1. **Change Default Password**: Immediately change admin password
 2. **Strong Passwords**: Use complex passwords for all accounts
-3. **Regular Backups**: Backup the `data/` directory regularly
+3. **Regular Backups**: Automated daily backups are enabled by default (see `config/settings.py`)
 4. **Secure Environment**: Run on trusted, secure systems only
 5. **Monitor Logs**: Regularly check audit logs for suspicious activity
+
+## 📚 Documentation
+
+- **[User Guide](./docs/USER_GUIDE.md)**: Comprehensive guide for end users
+- **[Architecture](./ARCHITECTURE.md)**: Technical architecture documentation
+- **[Roadmap](./ROADMAP.md)**: Development roadmap and feature plans
+- **[Contributing](./CONTRIBUTING.md)**: Guidelines for contributors
 
 ## 🐛 Troubleshooting
 

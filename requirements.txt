@@ -21,3 +21,6 @@ flake8>=6.0.0
 
 # Additional Security
 argon2-cffi-bindings>=21.2.0
+
+# Backup Scheduling
+schedule>=1.2.0

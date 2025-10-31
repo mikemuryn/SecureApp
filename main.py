@@ -17,6 +17,7 @@ from app.auth.session_manager import SessionManager
 from app.encryption.file_crypto import FileEncryption
 from app.models.database import DatabaseManager
 from app.utils.audit_logger import AuditLogger
+from app.utils.backup_scheduler import BackupScheduler
 from app.utils.file_manager import FileAccessManager
 
 # Import our modules
@@ -50,6 +51,20 @@ class SecureApp:
             self.db_manager, FileEncryption, self.audit_logger
         )
 
+        # Initialize backup scheduler
+        from config.settings import (  # noqa: F405
+            BACKUP_DIR,
+            BACKUP_ENABLED,
+            BACKUP_INTERVAL_HOURS,
+        )
+
+        self.backup_scheduler = BackupScheduler(
+            self.file_manager,
+            BACKUP_DIR,  # noqa: F405
+            interval_hours=BACKUP_INTERVAL_HOURS,  # noqa: F405
+            enabled=BACKUP_ENABLED,  # noqa: F405
+        )
+
         # Current user
         self.current_user = None
         self.current_session = None
@@ -62,6 +77,10 @@ class SecureApp:
 
         # Initialize database
         self._initialize_database()
+
+        # Start backup scheduler if enabled
+        if BACKUP_ENABLED:  # noqa: F405
+            self.backup_scheduler.start()
 
         # Show login screen
         self.show_login_screen()
@@ -896,8 +915,10 @@ class SecureApp:
                         session_time = f" | Session: {minutes}m"
 
             # Get file count
-            files = self.file_manager.list_user_files(self.current_user.username)
-            file_count = len(files)
+            files, total_count = self.file_manager.list_user_files(
+                self.current_user.username
+            )
+            file_count = total_count
             if self.file_search_filter:
                 file_count = sum(
                     1
@@ -1075,8 +1096,10 @@ class SecureApp:
         for item in self.file_tree.get_children():
             self.file_tree.delete(item)
 
-        # Get user files
-        files = self.file_manager.list_user_files(self.current_user.username)
+        # Get user files (with pagination - limit to 1000 for UI performance)
+        files, total_count = self.file_manager.list_user_files(
+            self.current_user.username, limit=1000
+        )
 
         # Filter files if search is active
         if self.file_search_filter:
