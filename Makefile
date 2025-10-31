@@ -94,8 +94,5 @@ db-init:
 run:
 	python main.py
 
-debug:
-	python debug_auth.py
-
 verify:
 	python verify_packages.py

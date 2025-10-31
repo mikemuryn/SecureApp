@@ -210,7 +210,7 @@ class FileAccessManager:
                     return False, None, "File not found"
 
                 # Check permissions
-                if not self._has_file_permission(user, secure_file, "read"):
+                if not self._has_file_permission(session, user, secure_file, "read"):
                     self.audit_logger.log_file_access(
                         username, secure_file.filename, "download", False
                     )
@@ -299,9 +299,6 @@ class FileAccessManager:
                     )
                     .all()
                 )
-
-                # Get files with permissions
-                # TODO: Implement permission-based file access
 
                 files = []
                 for file in owned_files:
@@ -398,7 +395,9 @@ class FileAccessManager:
                 hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
 
-    def _has_file_permission(self, user: Any, file: Any, permission_type: str) -> bool:
+    def _has_file_permission(
+        self, session: Any, user: Any, file: Any, permission_type: str
+    ) -> bool:
         """Check if user has permission for file"""
         # Owner always has all permissions
         if file.owner_id == user.id:
@@ -408,7 +407,28 @@ class FileAccessManager:
         if user.role == "admin":
             return True
 
-        # TODO: Implement role-based permissions
+        # Check FilePermission model for shared files
+        from ..models.database import FilePermission
+
+        permission = (
+            session.query(FilePermission)
+            .filter(
+                FilePermission.file_id == file.id,
+                FilePermission.user_id == user.id,
+            )
+            .first()
+        )
+
+        if permission:
+            # Permission hierarchy: admin > write > read
+            permission_hierarchy = {"read": 1, "write": 2, "admin": 3}
+            user_permission_level = permission_hierarchy.get(
+                permission.permission_type, 0
+            )
+            required_level = permission_hierarchy.get(permission_type, 0)
+            if user_permission_level >= required_level:
+                return True
+
         return False
 
     def create_file_version(

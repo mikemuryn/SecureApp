@@ -30,7 +30,7 @@ repos:
         args:
           - --max-line-length=88
           - --extend-ignore=E203
-          - --per-file-ignores=tests/*:F401,F541,F841,setup.py:F401,verify_packages.py:F401,debug_*.py:F541,main.py:F405
+          - --per-file-ignores=tests/*:F401,F541,F841,setup.py:F401,verify_packages.py:F401,main.py:F405
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.18.2
     hooks:
@@ -39,9 +39,7 @@ repos:
           - --ignore-missing-imports
         files: ^app/
         pass_filenames: true
-        # language_version: system
   - repo: https://github.com/PyCQA/bandit
-    #rev: 1.8.6
     rev: 1.7.9
     hooks:
       - id: bandit
@@ -53,11 +51,7 @@ repos:
         files: ^app/
         pass_filenames: false
         always_run: true
-        #args:
-        #  - -r
-        # - app/
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    # rev: v1.4.2
     rev: v1.3.3
     hooks:
       - id: python-safety-dependencies-check
@@ -66,14 +60,8 @@ repos:
         files: ^requirements\.txt$
         pass_filenames: false
         always_run: true
-  #-   repo: https://github.com/pre-commit/mirrors-prettier
-  #    rev: v4.0.0-alpha.8
-  #    hooks:
-  #    -   id: prettier
-  #        files: \.(md|json|yml|yaml)$
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8
-    #    rev: v3.3.3
     hooks:
       - id: prettier
         files: \.(md|json|yml|yaml)$
