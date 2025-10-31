@@ -29,16 +29,17 @@ class SecureApp:
     """Main application class"""
 
     def __init__(self):
-        self.root = ctk.CTk()
-        self.root.title("SecureApp")
-        self.root.geometry("1000x700")
-
-        # Initialize theme preference first
+        # Initialize theme preference and set BEFORE creating window
         self.theme_pref_file = BASE_DIR / ".theme_preference.json"  # noqa: F405
         self.current_theme = self._load_theme_preference()
 
-        # Apply theme
+        # Apply theme before creating root window (ensures dark mode default)
         ctk.set_appearance_mode(self.current_theme)
+
+        # Create root window after theme is set
+        self.root = ctk.CTk()
+        self.root.title("SecureApp")
+        self.root.geometry("1000x700")
 
         # Initialize components
         self.db_manager = DatabaseManager(DATABASE_URL)  # noqa: F405
