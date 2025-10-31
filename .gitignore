@@ -182,6 +182,11 @@ logs/
 data/encrypted/
 data/database/*.db
 
+# Temporary development files
+commit_output.txt
+encrypted/
+node_modules/
+
 # IDE
 .vscode/
 .idea/
