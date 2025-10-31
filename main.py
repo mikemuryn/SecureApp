@@ -3,8 +3,10 @@ Main Application Interface
 SecureApp GUI using tkinter
 """
 
+import json
 import logging
 import tkinter as tk
+from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
@@ -31,6 +33,13 @@ class SecureApp:
         self.root.title("SecureApp")
         self.root.geometry("1000x700")
 
+        # Initialize theme preference first
+        self.theme_pref_file = BASE_DIR / ".theme_preference.json"  # noqa: F405
+        self.current_theme = self._load_theme_preference()
+
+        # Apply theme
+        ctk.set_appearance_mode(self.current_theme)
+
         # Initialize components
         self.db_manager = DatabaseManager(DATABASE_URL)  # noqa: F405
         self.auth_manager = AuthenticationManager(self.db_manager)
@@ -44,6 +53,9 @@ class SecureApp:
         self.current_user = None
         self.current_session = None
 
+        # File search filter
+        self.file_search_filter = ""
+
         # Setup logging
         self._setup_logging()
 
@@ -52,6 +64,25 @@ class SecureApp:
 
         # Show login screen
         self.show_login_screen()
+
+    def _load_theme_preference(self) -> str:
+        """Load theme preference from file"""
+        try:
+            if self.theme_pref_file.exists():
+                with open(self.theme_pref_file, "r") as f:
+                    data = json.load(f)
+                    return data.get("theme", "dark")
+        except Exception:
+            pass
+        return "dark"  # Default to dark mode
+
+    def _save_theme_preference(self, theme: str) -> None:
+        """Save theme preference to file"""
+        try:
+            with open(self.theme_pref_file, "w") as f:
+                json.dump({"theme": theme}, f)
+        except Exception as e:
+            logger.error(f"Failed to save theme preference: {e}")
 
     def _setup_logging(self):
         """Setup application logging"""
@@ -292,11 +323,30 @@ class SecureApp:
         )
         welcome_label.pack(side="left", padx=20, pady=10)
 
+        # Theme toggle button
+        self.theme_button = ctk.CTkButton(
+            header_frame,
+            text="☀️" if self.current_theme == "dark" else "🌙",
+            command=self.toggle_theme,
+            width=50,
+        )
+        self.theme_button.pack(side="right", padx=10, pady=10)
+
         # Logout button
         logout_button = ctk.CTkButton(
             header_frame, text="Logout", command=self.handle_logout, width=100
         )
         logout_button.pack(side="right", padx=20, pady=10)
+
+        # Setup keyboard shortcuts
+        self._setup_keyboard_shortcuts()
+
+        # Status bar
+        self.status_bar = ctk.CTkLabel(
+            main_frame, text="Ready", anchor="w", font=ctk.CTkFont(size=12)
+        )
+        self.status_bar.pack(side="bottom", fill="x", padx=10, pady=5)
+        self._update_status_bar()
 
         # Content frame
         content_frame = ctk.CTkFrame(main_frame)
@@ -349,6 +399,24 @@ class SecureApp:
             font=ctk.CTkFont(size=16, weight="bold"),
         )
         list_label.pack(pady=10)
+
+        # Search/filter section
+        search_frame = ctk.CTkFrame(list_frame)
+        search_frame.pack(fill="x", padx=10, pady=5)
+
+        search_label = ctk.CTkLabel(search_frame, text="Search:")
+        search_label.pack(side="left", padx=10, pady=5)
+
+        self.search_entry = ctk.CTkEntry(
+            search_frame, placeholder_text="Type to search files...", width=300
+        )
+        self.search_entry.pack(side="left", padx=10, pady=5)
+        self.search_entry.bind("<KeyRelease>", self._on_search_changed)
+
+        clear_search_button = ctk.CTkButton(
+            search_frame, text="Clear", command=self._clear_search, width=80
+        )
+        clear_search_button.pack(side="left", padx=10, pady=5)
 
         # File list treeview
         if self.current_user.role == "admin":
@@ -418,6 +486,9 @@ class SecureApp:
 
         # Load initial file list
         self.refresh_file_list()
+
+        # Setup drag and drop
+        self._setup_drag_drop(file_frame)
 
     def create_user_management_tab(self):
         """Create user management tab (admin only)"""
@@ -515,40 +586,196 @@ class SecureApp:
         # Load initial log
         self.refresh_audit_log(log_text)
 
-    def handle_file_upload(self):
-        """Handle file upload"""
-        file_path = filedialog.askopenfilename(
-            title="Select file to upload", filetypes=[("All files", "*.*")]
-        )
+    def toggle_theme(self) -> None:
+        """Toggle between dark and light theme"""
+        self.current_theme = "light" if self.current_theme == "dark" else "dark"
+        ctk.set_appearance_mode(self.current_theme)
+        self._save_theme_preference(self.current_theme)
+        # Update theme button icon
+        if hasattr(self, "theme_button"):
+            self.theme_button.configure(
+                text="☀️" if self.current_theme == "dark" else "🌙"
+            )
+        self._update_status_bar()
 
-        if not file_path:
+    def _setup_keyboard_shortcuts(self) -> None:
+        """Setup keyboard shortcuts for main interface"""
+        self.root.bind("<Control-u>", lambda e: self.handle_file_upload())
+        self.root.bind("<Control-d>", lambda e: self.handle_file_download())
+        self.root.bind("<Control-f>", lambda e: self.search_entry.focus())
+        self.root.bind("<Control-q>", lambda e: self.handle_logout())
+        self.root.bind("<F5>", lambda e: self.refresh_file_list())
+        self.root.bind("<Delete>", lambda e: self.handle_file_delete())
+        self.root.bind("<Escape>", lambda e: self._handle_escape())
+
+    def _handle_escape(self) -> None:
+        """Handle Escape key - close dialogs or clear selection"""
+        # Try to find active toplevel and close it
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Toplevel) or isinstance(widget, ctk.CTkToplevel):
+                widget.destroy()
+                return
+        # Clear file selection
+        for item in self.file_tree.selection():
+            self.file_tree.selection_remove(item)
+
+    def _on_search_changed(self, event=None) -> None:
+        """Handle search text change"""
+        self.file_search_filter = self.search_entry.get().lower()
+        self.refresh_file_list()
+
+    def _clear_search(self) -> None:
+        """Clear search filter"""
+        self.search_entry.delete(0, tk.END)
+        self.file_search_filter = ""
+        self.refresh_file_list()
+
+    def _setup_drag_drop(self, parent_frame) -> None:
+        """Setup drag and drop for file upload"""
+        # Enable drag and drop on the upload frame
+        upload_frame = None
+        for widget in parent_frame.winfo_children():
+            if isinstance(widget, ctk.CTkFrame):
+                for child in widget.winfo_children():
+                    if isinstance(child, ctk.CTkLabel) and "Upload" in str(
+                        child.cget("text")
+                    ):
+                        upload_frame = widget
+                        break
+
+        if upload_frame:
+            # Bind drag and drop events
+            upload_frame.bind(
+                "<Button-1>", lambda e: self._on_drag_enter(e, upload_frame)
+            )
+            upload_frame.bind(
+                "<B1-Motion>", lambda e: self._on_drag_over(e, upload_frame)
+            )
+            upload_frame.bind("<ButtonRelease-1>", lambda e: self._on_drop(e))
+
+            # Make frame accept drops
+            upload_frame.configure(cursor="hand2")
+
+    def _on_drag_enter(self, event, frame) -> None:
+        """Handle drag enter"""
+        frame.configure(fg_color=("gray75", "gray25"))
+
+    def _on_drag_over(self, event, frame) -> None:
+        """Handle drag over"""
+        pass
+
+    def _on_drop(self, event) -> None:
+        """Handle file drop"""
+        # Reset frame color
+        for widget in self.root.winfo_children():
+            for child in widget.winfo_children():
+                if isinstance(child, ctk.CTkFrame):
+                    for subchild in child.winfo_children():
+                        if isinstance(subchild, ctk.CTkLabel) and "Upload" in str(
+                            subchild.cget("text")
+                        ):
+                            child.configure(fg_color=None)
+
+        # Use file dialog as fallback (true drag-drop requires more complex handling)
+        self.handle_file_upload()
+
+    def _update_status_bar(self) -> None:
+        """Update status bar with current information"""
+        if not hasattr(self, "status_bar") or not self.current_user:
             return
 
-        file_path = Path(file_path)
+        try:
+            session_time = ""
+            if self.current_session:
+                is_valid, session_info = self.session_manager.validate_session(
+                    self.current_session
+                )
+                if is_valid and session_info:
+                    created_at = session_info.get("created_at")
+                    if created_at:
+                        elapsed = datetime.utcnow() - created_at
+                        minutes = int(elapsed.total_seconds() / 60)
+                        session_time = f" | Session: {minutes}m"
 
-        # Get password for encryption
-        password = self.show_password_dialog(
-            "File Encryption", "Enter your password for file encryption:"
-        )
-        if not password:
-            return
+            # Get file count
+            files = self.file_manager.list_user_files(self.current_user.username)
+            file_count = len(files)
+            if self.file_search_filter:
+                file_count = sum(
+                    1
+                    for f in files
+                    if self.file_search_filter in f.get("filename", "").lower()
+                )
 
-        # Upload file
-        success, message = self.file_manager.upload_file(
-            file_path, self.current_user.username, password
-        )
+            status_text = (
+                f"User: {self.current_user.username} ({self.current_user.role})"
+                f" | Files: {file_count}"
+                f"{session_time}"
+                f" | Theme: {self.current_theme.capitalize()}"
+            )
+            self.status_bar.configure(text=status_text)
+        except Exception as e:
+            logger.error(f"Error updating status bar: {e}")
+            self.status_bar.configure(text="Ready")
 
-        if success:
-            messagebox.showinfo("Success", message)
-            self.refresh_file_list()
-        else:
-            messagebox.showerror("Error", message)
+    def handle_file_upload(self, file_paths=None):
+        """Handle file upload - supports multiple files"""
+        if file_paths is None:
+            file_path = filedialog.askopenfilename(
+                title="Select file to upload", filetypes=[("All files", "*.*")]
+            )
+            if not file_path:
+                return
+            file_paths = [file_path]
+
+        for file_path in file_paths:
+            file_path = Path(file_path) if isinstance(file_path, str) else file_path
+
+            if not file_path.exists():
+                self._show_error(
+                    "File Not Found", f"The file '{file_path.name}' does not exist."
+                )
+                continue
+
+            # Get password for encryption
+            password = self.show_password_dialog(
+                "File Encryption", f"Enter your password to encrypt '{file_path.name}':"
+            )
+            if not password:
+                continue
+
+            # Upload file
+            try:
+                self.status_bar.configure(text=f"Uploading {file_path.name}...")
+                success, message = self.file_manager.upload_file(
+                    file_path, self.current_user.username, password
+                )
+
+                if success:
+                    self._show_success(
+                        "File Uploaded", f"'{file_path.name}' uploaded successfully!"
+                    )
+                    self.refresh_file_list()
+                    self._update_status_bar()
+                else:
+                    self._show_error(
+                        "Upload Failed",
+                        f"Failed to upload '{file_path.name}': {message}",
+                    )
+            except Exception as e:
+                logger.error(f"Upload error: {e}")
+                self._show_error(
+                    "Upload Error",
+                    f"An error occurred while uploading '{file_path.name}': {str(e)}",
+                )
+            finally:
+                self.status_bar.configure(text="Ready")
 
     def handle_file_download(self):
         """Handle file download"""
         selection = self.file_tree.selection()
         if not selection:
-            messagebox.showwarning("Warning", "Please select a file to download")
+            self._show_warning("No File Selected", "Please select a file to download.")
             return
 
         item = self.file_tree.item(selection[0])
@@ -568,51 +795,98 @@ class SecureApp:
 
         if success:
             # Ask where to save
+            filename = temp_path.name if temp_path else "file"
             save_path = filedialog.asksaveasfilename(
-                title="Save file as", initialvalue=temp_path.name
+                title="Save file as", initialfilename=filename
             )
 
             if save_path:
-                import shutil
+                try:
+                    import shutil
 
-                shutil.move(str(temp_path), save_path)
-                messagebox.showinfo("Success", f"File saved to: {save_path}")
+                    self.status_bar.configure(text=f"Saving {filename}...")
+                    shutil.move(str(temp_path), save_path)
+                    self._show_success("File Downloaded", f"File saved to: {save_path}")
+                except Exception as e:
+                    logger.error(f"Save error: {e}")
+                    self._show_error("Save Failed", f"Failed to save file: {str(e)}")
+                finally:
+                    self.status_bar.configure(text="Ready")
 
             # Clean up temp file
-            if temp_path.exists():
+            if temp_path and temp_path.exists():
                 temp_path.unlink()
         else:
-            messagebox.showerror("Error", message)
+            self._show_error("Download Failed", f"Could not download file: {message}")
 
     def handle_file_delete(self):
         """Handle file deletion"""
         selection = self.file_tree.selection()
         if not selection:
-            messagebox.showwarning("Warning", "Please select a file to delete")
+            self._show_warning("No File Selected", "Please select a file to delete.")
             return
 
-        if messagebox.askyesno("Confirm", "Are you sure you want to delete this file?"):
-            item = self.file_tree.item(selection[0])
-            file_id = item["values"][0]
+        item = self.file_tree.item(selection[0])
+        file_id = item["values"][0]
+        filename = item["values"][1] if len(item["values"]) > 1 else "this file"
 
-            success, message = self.file_manager.delete_file(
-                file_id, self.current_user.username
-            )
+        if messagebox.askyesno(
+            "Confirm Deletion",
+            (
+                f"Are you sure you want to delete '{filename}'?\n\n"
+                "This action cannot be undone."
+            ),
+        ):
+            try:
+                self.status_bar.configure(text=f"Deleting {filename}...")
+                success, message = self.file_manager.delete_file(
+                    file_id, self.current_user.username
+                )
 
-            if success:
-                messagebox.showinfo("Success", message)
-                self.refresh_file_list()
-            else:
-                messagebox.showerror("Error", message)
+                if success:
+                    self._show_success(
+                        "File Deleted", f"'{filename}' has been deleted."
+                    )
+                    self.refresh_file_list()
+                    self._update_status_bar()
+                else:
+                    self._show_error(
+                        "Delete Failed", f"Could not delete file: {message}"
+                    )
+            except Exception as e:
+                logger.error(f"Delete error: {e}")
+                self._show_error("Delete Error", f"An error occurred: {str(e)}")
+            finally:
+                self.status_bar.configure(text="Ready")
+
+    def _show_success(self, title: str, message: str) -> None:
+        """Show success message"""
+        messagebox.showinfo(title, message)
+
+    def _show_error(self, title: str, message: str) -> None:
+        """Show error message with better formatting"""
+        messagebox.showerror(title, message)
+
+    def _show_warning(self, title: str, message: str) -> None:
+        """Show warning message"""
+        messagebox.showwarning(title, message)
 
     def refresh_file_list(self):
-        """Refresh file list"""
+        """Refresh file list with search filter"""
         # Clear existing items
         for item in self.file_tree.get_children():
             self.file_tree.delete(item)
 
         # Get user files
         files = self.file_manager.list_user_files(self.current_user.username)
+
+        # Filter files if search is active
+        if self.file_search_filter:
+            files = [
+                f
+                for f in files
+                if self.file_search_filter in f.get("filename", "").lower()
+            ]
 
         # Add files to tree
         for file_info in files:
@@ -652,6 +926,9 @@ class SecureApp:
                     ),
                 )
 
+        # Update status bar after refresh
+        self._update_status_bar()
+
     def handle_create_user(self):
         """Handle user creation"""
         username = self.new_username_entry.get().strip()
@@ -660,19 +937,35 @@ class SecureApp:
         role = self.new_role_var.get()
 
         if not all([username, email, password]):
-            messagebox.showerror("Error", "Please fill in all fields")
+            self._show_error(
+                "Missing Information", "Please fill in all required fields."
+            )
             return
 
-        success = self.auth_manager.create_user(username, email, password, role)
+        try:
+            self.status_bar.configure(text=f"Creating user {username}...")
+            success = self.auth_manager.create_user(username, email, password, role)
 
-        if success:
-            messagebox.showinfo("Success", f"User {username} created successfully")
-            # Clear form
-            self.new_username_entry.delete(0, tk.END)
-            self.new_email_entry.delete(0, tk.END)
-            self.new_password_entry.delete(0, tk.END)
-        else:
-            messagebox.showerror("Error", "Failed to create user")
+            if success:
+                self._show_success(
+                    "User Created", f"User '{username}' has been created successfully."
+                )
+                # Clear form
+                self.new_username_entry.delete(0, tk.END)
+                self.new_email_entry.delete(0, tk.END)
+                self.new_password_entry.delete(0, tk.END)
+            else:
+                self._show_error(
+                    "Creation Failed",
+                    "Failed to create user. The username or email may already exist.",
+                )
+        except Exception as e:
+            logger.error(f"User creation error: {e}")
+            self._show_error(
+                "Error", f"An error occurred while creating user: {str(e)}"
+            )
+        finally:
+            self.status_bar.configure(text="Ready")
 
     def refresh_audit_log(self, log_text):
         """Refresh audit log display"""
