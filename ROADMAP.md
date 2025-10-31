@@ -28,10 +28,10 @@ Transform SecureApp from a functional prototype into a **professional, productio
 
 - ✅ ~~Limited file management features (no search, filtering, preview)~~ - **IMPLEMENTED**: File search/filter added
 - ✅ ~~Basic UI/UX (no keyboard shortcuts, drag-and-drop, modern UX patterns)~~ - **PARTIALLY ADDRESSED**: Keyboard shortcuts, dark mode, and improved UX added (drag-and-drop partially implemented)
-- ❌ No password recovery mechanism
-- ❌ Missing key features (file sharing, versioning, tagging)
-- ❌ Limited export/backup capabilities
-- ✅ ~~No dark mode / theme customization~~ - **IMPLEMENTED**: Dark/light theme toggle with persistent preference
+- ✅ ~~No password recovery mechanism~~ - **IMPLEMENTED**: Security question-based password recovery with reset tokens
+- ✅ ~~Missing key features (file sharing, versioning, tagging)~~ - **IMPLEMENTED**: File sharing with permissions, automatic versioning on upload, and tag management
+- ✅ ~~Limited export/backup capabilities~~ - **IMPLEMENTED**: CSV export for file lists and full system backup (admin only)
+- ✅ ~~No dark mode / theme customization~~ - **IMPLEMENTED**: Dark mode by default with light/dark theme toggle and persistent preference
 - ❌ Performance optimization needed for large file sets
 - ❌ No API/CLI interface
 - ❌ Limited documentation for end users

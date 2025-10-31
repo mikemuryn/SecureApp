@@ -175,6 +175,18 @@ class SecureApp:
         )
         login_button.pack(pady=30)
 
+        # Forgot password link
+        forgot_password_button = ctk.CTkButton(
+            login_frame,
+            text="Forgot Password?",
+            command=self.show_password_recovery,
+            width=300,
+            height=30,
+            fg_color="transparent",
+            text_color="lightblue",
+        )
+        forgot_password_button.pack(pady=5)
+
         # Bind Enter key to login
         self.root.bind("<Return>", lambda e: self.handle_login())
 
@@ -484,11 +496,196 @@ class SecureApp:
         )
         refresh_button.pack(side="right", padx=10, pady=10)
 
+        # Advanced operations buttons
+        advanced_frame = ctk.CTkFrame(file_frame)
+        advanced_frame.pack(fill="x", padx=10, pady=10)
+
+        tag_button = ctk.CTkButton(
+            advanced_frame,
+            text="Manage Tags",
+            command=self.handle_file_tags,
+            width=120,
+        )
+        tag_button.pack(side="left", padx=5, pady=5)
+
+        share_button = ctk.CTkButton(
+            advanced_frame,
+            text="Share File",
+            command=self.handle_file_share,
+            width=120,
+        )
+        share_button.pack(side="left", padx=5, pady=5)
+
+        version_button = ctk.CTkButton(
+            advanced_frame,
+            text="View Versions",
+            command=self.handle_file_versions,
+            width=120,
+        )
+        version_button.pack(side="left", padx=5, pady=5)
+
+        export_button = ctk.CTkButton(
+            advanced_frame,
+            text="Export List",
+            command=self.handle_export_file_list,
+            width=120,
+        )
+        export_button.pack(side="left", padx=5, pady=5)
+
+        if self.current_user.role == "admin":
+            backup_button = ctk.CTkButton(
+                advanced_frame,
+                text="Create Backup",
+                command=self.handle_backup,
+                width=120,
+            )
+            backup_button.pack(side="left", padx=5, pady=5)
+
         # Load initial file list
         self.refresh_file_list()
 
         # Setup drag and drop
         self._setup_drag_drop(file_frame)
+
+    def create_settings_tab(self):
+        """Create settings tab for all users"""
+        settings_frame = ctk.CTkFrame(self.notebook)
+        self.notebook.add(settings_frame, text="Settings")
+
+        # Password settings
+        password_frame = ctk.CTkFrame(settings_frame)
+        password_frame.pack(fill="x", padx=10, pady=10)
+
+        password_label = ctk.CTkLabel(
+            password_frame,
+            text="Password Recovery",
+            font=ctk.CTkFont(size=16, weight="bold"),
+        )
+        password_label.pack(pady=10)
+
+        # Recovery question section
+        recovery_frame = ctk.CTkFrame(password_frame)
+        recovery_frame.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(recovery_frame, text="Recovery Question:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="w"
+        )
+        self.recovery_question_entry = ctk.CTkEntry(recovery_frame, width=300)
+        self.recovery_question_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ctk.CTkLabel(recovery_frame, text="Recovery Answer:").grid(
+            row=1, column=0, padx=10, pady=5, sticky="w"
+        )
+        self.recovery_answer_entry = ctk.CTkEntry(recovery_frame, width=300, show="*")
+        self.recovery_answer_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        # Load existing recovery question
+        user = self.auth_manager.get_user_by_username(self.current_user.username)
+        if user and user.recovery_question:
+            self.recovery_question_entry.insert(0, user.recovery_question)
+
+        set_recovery_button = ctk.CTkButton(
+            recovery_frame,
+            text="Set Recovery Question",
+            command=self.handle_set_recovery_question,
+            width=200,
+        )
+        set_recovery_button.grid(row=2, column=1, padx=10, pady=20)
+
+        # Change password section
+        change_pass_frame = ctk.CTkFrame(password_frame)
+        change_pass_frame.pack(fill="x", padx=20, pady=10)
+
+        change_pass_label = ctk.CTkLabel(
+            change_pass_frame,
+            text="Change Password",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        )
+        change_pass_label.pack(pady=10)
+
+        ctk.CTkLabel(change_pass_frame, text="Current Password:").grid(
+            row=0, column=0, padx=10, pady=5, sticky="w"
+        )
+        self.current_pass_entry = ctk.CTkEntry(change_pass_frame, width=250, show="*")
+        self.current_pass_entry.grid(row=0, column=1, padx=10, pady=5)
+
+        ctk.CTkLabel(change_pass_frame, text="New Password:").grid(
+            row=1, column=0, padx=10, pady=5, sticky="w"
+        )
+        self.new_pass_change_entry = ctk.CTkEntry(
+            change_pass_frame, width=250, show="*"
+        )
+        self.new_pass_change_entry.grid(row=1, column=1, padx=10, pady=5)
+
+        ctk.CTkLabel(change_pass_frame, text="Confirm New Password:").grid(
+            row=2, column=0, padx=10, pady=5, sticky="w"
+        )
+        self.confirm_pass_entry = ctk.CTkEntry(change_pass_frame, width=250, show="*")
+        self.confirm_pass_entry.grid(row=2, column=1, padx=10, pady=5)
+
+        change_pass_button = ctk.CTkButton(
+            change_pass_frame,
+            text="Change Password",
+            command=self.handle_change_password,
+            width=200,
+        )
+        change_pass_button.grid(row=3, column=1, padx=10, pady=20)
+
+    def handle_set_recovery_question(self) -> None:
+        """Handle setting recovery question"""
+        question = self.recovery_question_entry.get().strip()
+        answer = self.recovery_answer_entry.get().strip()
+
+        if not question or not answer:
+            self._show_error("Missing Information", "Please fill in all fields.")
+            return
+
+        try:
+            self.status_bar.configure(text="Setting recovery question...")
+            success, message = self.auth_manager.set_recovery_question(
+                self.current_user.username, question, answer
+            )
+            if success:
+                self._show_success("Recovery Question Set", message)
+            else:
+                self._show_error("Error", message)
+        except Exception as e:
+            logger.error(f"Set recovery question error: {e}")
+            self._show_error("Error", f"An error occurred: {str(e)}")
+        finally:
+            self.status_bar.configure(text="Ready")
+
+    def handle_change_password(self) -> None:
+        """Handle password change"""
+        current_pass = self.current_pass_entry.get()
+        new_pass = self.new_pass_change_entry.get()
+        confirm_pass = self.confirm_pass_entry.get()
+
+        if not all([current_pass, new_pass, confirm_pass]):
+            self._show_error("Missing Information", "Please fill in all fields.")
+            return
+
+        if new_pass != confirm_pass:
+            self._show_error("Error", "New passwords do not match.")
+            return
+
+        try:
+            self.status_bar.configure(text="Changing password...")
+            success, message = self.auth_manager.change_password(
+                self.current_user.username, current_pass, new_pass
+            )
+            if success:
+                self._show_success("Password Changed", message)
+                self.current_pass_entry.delete(0, tk.END)
+                self.new_pass_change_entry.delete(0, tk.END)
+                self.confirm_pass_entry.delete(0, tk.END)
+            else:
+                self._show_error("Error", message)
+        except Exception as e:
+            logger.error(f"Change password error: {e}")
+            self._show_error("Error", f"An error occurred: {str(e)}")
+        finally:
+            self.status_bar.configure(text="Ready")
 
     def create_user_management_tab(self):
         """Create user management tab (admin only)"""
@@ -980,6 +1177,412 @@ class SecureApp:
                 f"{event['action']} - {event['resource']} - {status}\n"
             )
             log_text.insert(tk.END, log_entry)
+
+    def show_password_recovery(self) -> None:
+        """Show password recovery dialog"""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title("Password Recovery")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (400 // 2)
+        dialog.geometry(f"500x400+{x}+{y}")
+
+        # Username entry
+        ctk.CTkLabel(dialog, text="Username:", font=ctk.CTkFont(size=12)).pack(
+            pady=(20, 5)
+        )
+        username_entry = ctk.CTkEntry(dialog, width=300)
+        username_entry.pack(pady=5)
+
+        # Get recovery question
+        def get_recovery_question():
+            username = username_entry.get().strip()
+            if not username:
+                messagebox.showerror("Error", "Please enter username")
+                return
+
+            user = self.auth_manager.get_user_by_username(username)
+            if not user:
+                messagebox.showerror("Error", "User not found")
+                return
+
+            if not user.recovery_question:
+                messagebox.showerror(
+                    "Error",
+                    "Recovery question not set. Please contact administrator.",
+                )
+                return
+
+            # Show recovery question
+            question_label.configure(text=f"Question: {user.recovery_question}")
+            answer_entry.pack(pady=5)
+            reset_button.pack(pady=10)
+
+        # Recovery question label
+        question_label = ctk.CTkLabel(dialog, text="", font=ctk.CTkFont(size=12))
+        question_label.pack(pady=10)
+
+        # Recovery answer entry (initially hidden)
+        answer_entry = ctk.CTkEntry(dialog, width=300, placeholder_text="Answer")
+
+        # Get question button
+        get_question_button = ctk.CTkButton(
+            dialog,
+            text="Get Recovery Question",
+            command=get_recovery_question,
+            width=200,
+        )
+        get_question_button.pack(pady=10)
+
+        # Reset password function
+        def reset_password():
+            username = username_entry.get().strip()
+            answer = answer_entry.get().strip()
+
+            if not username or not answer:
+                messagebox.showerror("Error", "Please fill in all fields")
+                return
+
+            success, message, reset_token = self.auth_manager.request_password_reset(
+                username, answer
+            )
+
+            if not success:
+                messagebox.showerror("Password Recovery Failed", message)
+                return
+
+            # Show new password dialog
+            new_password_dialog = ctk.CTkToplevel(dialog)
+            new_password_dialog.title("Set New Password")
+            new_password_dialog.geometry("400x250")
+            new_password_dialog.transient(dialog)
+            new_password_dialog.grab_set()
+
+            ctk.CTkLabel(
+                new_password_dialog,
+                text="Enter New Password:",
+                font=ctk.CTkFont(size=12),
+            ).pack(pady=(20, 5))
+            new_pass_entry = ctk.CTkEntry(
+                new_password_dialog, width=250, show="*", height=35
+            )
+            new_pass_entry.pack(pady=5)
+
+            ctk.CTkLabel(
+                new_password_dialog,
+                text="Confirm New Password:",
+                font=ctk.CTkFont(size=12),
+            ).pack(pady=(10, 5))
+            confirm_pass_entry = ctk.CTkEntry(
+                new_password_dialog, width=250, show="*", height=35
+            )
+            confirm_pass_entry.pack(pady=5)
+
+            def set_new_password():
+                new_pass = new_pass_entry.get()
+                confirm_pass = confirm_pass_entry.get()
+
+                if new_pass != confirm_pass:
+                    messagebox.showerror("Error", "Passwords do not match")
+                    return
+
+                success, message = self.auth_manager.reset_password(
+                    username, reset_token, new_pass
+                )
+
+                if success:
+                    messagebox.showinfo("Success", "Password reset successfully!")
+                    new_password_dialog.destroy()
+                    dialog.destroy()
+                else:
+                    messagebox.showerror("Error", message)
+
+            ctk.CTkButton(
+                new_password_dialog,
+                text="Reset Password",
+                command=set_new_password,
+                width=200,
+            ).pack(pady=20)
+
+        # Reset button (initially hidden)
+        reset_button = ctk.CTkButton(
+            dialog, text="Reset Password", command=reset_password, width=200
+        )
+
+    def handle_file_tags(self) -> None:
+        """Handle file tagging"""
+        selection = self.file_tree.selection()
+        if not selection:
+            self._show_warning(
+                "No File Selected", "Please select a file to manage tags."
+            )
+            return
+
+        item = self.file_tree.item(selection[0])
+        file_id = item["values"][0]
+        filename = item["values"][1] if len(item["values"]) > 1 else "Unknown"
+
+        # Create tag management dialog
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"Manage Tags - {filename}")
+        dialog.geometry("400x500")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        # Current tags
+        ctk.CTkLabel(
+            dialog, text="Current Tags:", font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(pady=(20, 10))
+
+        tags_frame = ctk.CTkScrollableFrame(dialog, height=150)
+        tags_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        def refresh_tags():
+            for widget in tags_frame.winfo_children():
+                widget.destroy()
+
+            tags = self.file_manager.get_file_tags(file_id)
+            if not tags:
+                ctk.CTkLabel(tags_frame, text="No tags").pack(pady=5)
+            else:
+                for tag in tags:
+                    tag_row = ctk.CTkFrame(tags_frame)
+                    tag_row.pack(fill="x", pady=2)
+
+                    ctk.CTkLabel(tag_row, text=tag["name"], width=200).pack(
+                        side="left", padx=5
+                    )
+
+                    def remove_tag(tag_name=tag["name"]):
+                        success, message = self.file_manager.remove_file_tag(
+                            file_id, tag_name
+                        )
+                        if success:
+                            self._show_success("Tag Removed", message)
+                            refresh_tags()
+                        else:
+                            self._show_error("Error", message)
+
+                    ctk.CTkButton(
+                        tag_row, text="Remove", command=remove_tag, width=80
+                    ).pack(side="right", padx=5)
+
+        refresh_tags()
+
+        # Add new tag
+        ctk.CTkLabel(
+            dialog, text="Add New Tag:", font=ctk.CTkFont(size=12, weight="bold")
+        ).pack(pady=(20, 10))
+
+        tag_input_frame = ctk.CTkFrame(dialog)
+        tag_input_frame.pack(fill="x", padx=20, pady=5)
+
+        tag_entry = ctk.CTkEntry(
+            tag_input_frame, placeholder_text="Tag name", width=200
+        )
+        tag_entry.pack(side="left", padx=5)
+
+        def add_tag():
+            tag_name = tag_entry.get().strip()
+            if not tag_name:
+                self._show_warning("Error", "Please enter a tag name")
+                return
+
+            success, message = self.file_manager.add_file_tag(
+                file_id, self.current_user.username, tag_name
+            )
+            if success:
+                self._show_success("Tag Added", message)
+                tag_entry.delete(0, tk.END)
+                refresh_tags()
+            else:
+                self._show_error("Error", message)
+
+        ctk.CTkButton(tag_input_frame, text="Add", command=add_tag, width=80).pack(
+            side="right", padx=5
+        )
+
+        # Close button
+        ctk.CTkButton(dialog, text="Close", command=dialog.destroy, width=200).pack(
+            pady=20
+        )
+
+    def handle_file_share(self) -> None:
+        """Handle file sharing"""
+        selection = self.file_tree.selection()
+        if not selection:
+            self._show_warning("No File Selected", "Please select a file to share.")
+            return
+
+        item = self.file_tree.item(selection[0])
+        file_id = item["values"][0]
+        filename = item["values"][1] if len(item["values"]) > 1 else "Unknown"
+
+        # Get all users
+        session = self.db_manager.get_session()
+        try:
+            from app.models.database import User
+
+            all_users = session.query(User).all()
+            user_list = [
+                u.username
+                for u in all_users
+                if u.username != self.current_user.username
+            ]
+        finally:
+            self.db_manager.close_session(session)
+
+        if not user_list:
+            self._show_warning("No Users", "No other users available to share with.")
+            return
+
+        # Create share dialog
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"Share File - {filename}")
+        dialog.geometry("400x300")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        ctk.CTkLabel(
+            dialog, text=f"Share: {filename}", font=ctk.CTkFont(size=14, weight="bold")
+        ).pack(pady=(20, 10))
+
+        ctk.CTkLabel(dialog, text="Share with:", font=ctk.CTkFont(size=12)).pack(pady=5)
+        user_combo = ctk.CTkComboBox(dialog, values=user_list, width=250)
+        user_combo.pack(pady=5)
+
+        ctk.CTkLabel(dialog, text="Permission:", font=ctk.CTkFont(size=12)).pack(pady=5)
+        perm_var = tk.StringVar(value="read")
+        perm_combo = ctk.CTkComboBox(
+            dialog, values=["read", "write", "admin"], variable=perm_var, width=250
+        )
+        perm_combo.pack(pady=5)
+
+        def share_file():
+            shared_with = user_combo.get()
+            permission = perm_var.get()
+
+            if not shared_with:
+                self._show_warning("Error", "Please select a user")
+                return
+
+            success, message = self.file_manager.share_file(
+                file_id, self.current_user.username, shared_with, permission
+            )
+            if success:
+                self._show_success("File Shared", message)
+                dialog.destroy()
+            else:
+                self._show_error("Error", message)
+
+        ctk.CTkButton(dialog, text="Share", command=share_file, width=200).pack(pady=20)
+
+    def handle_file_versions(self) -> None:
+        """Handle file versioning"""
+        selection = self.file_tree.selection()
+        if not selection:
+            self._show_warning(
+                "No File Selected", "Please select a file to view versions."
+            )
+            return
+
+        item = self.file_tree.item(selection[0])
+        file_id = item["values"][0]
+        filename = item["values"][1] if len(item["values"]) > 1 else "Unknown"
+
+        versions = self.file_manager.list_file_versions(file_id)
+
+        # Create versions dialog
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(f"File Versions - {filename}")
+        dialog.geometry("600x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        ctk.CTkLabel(
+            dialog,
+            text=f"Versions for: {filename}",
+            font=ctk.CTkFont(size=14, weight="bold"),
+        ).pack(pady=(20, 10))
+
+        if not versions:
+            ctk.CTkLabel(dialog, text="No versions available").pack(pady=20)
+        else:
+            # Versions list
+            versions_frame = ctk.CTkScrollableFrame(dialog, height=250)
+            versions_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+            for version in versions:
+                version_frame = ctk.CTkFrame(versions_frame)
+                version_frame.pack(fill="x", pady=2)
+
+                version_text = (
+                    f"Version {version['version_number']} - "
+                    f"{version['created_at'].strftime('%Y-%m-%d %H:%M')} - "
+                    f"{version['created_by']}"
+                )
+                ctk.CTkLabel(version_frame, text=version_text, width=400).pack(
+                    side="left", padx=5
+                )
+
+                if version.get("notes"):
+                    ctk.CTkLabel(
+                        version_frame, text=f"({version['notes']})", width=150
+                    ).pack(side="left", padx=5)
+
+        ctk.CTkButton(dialog, text="Close", command=dialog.destroy, width=200).pack(
+            pady=20
+        )
+
+    def handle_export_file_list(self) -> None:
+        """Export file list to CSV"""
+        export_path = filedialog.asksaveasfilename(
+            title="Export File List",
+            defaultextension=".csv",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+
+        if export_path:
+            try:
+                self.status_bar.configure(text="Exporting file list...")
+                success, message = self.file_manager.export_file_list(
+                    self.current_user.username, Path(export_path)
+                )
+                if success:
+                    self._show_success("Export Successful", message)
+                else:
+                    self._show_error("Export Failed", message)
+            except Exception as e:
+                logger.error(f"Export error: {e}")
+                self._show_error("Export Error", f"An error occurred: {str(e)}")
+            finally:
+                self.status_bar.configure(text="Ready")
+
+    def handle_backup(self) -> None:
+        """Create system backup"""
+        if self.current_user.role != "admin":
+            self._show_error("Access Denied", "Admin access required")
+            return
+
+        backup_path = filedialog.askdirectory(title="Select Backup Location")
+        if backup_path:
+            try:
+                self.status_bar.configure(text="Creating backup...")
+                success, message = self.file_manager.export_backup(Path(backup_path))
+                if success:
+                    self._show_success("Backup Successful", message)
+                else:
+                    self._show_error("Backup Failed", message)
+            except Exception as e:
+                logger.error(f"Backup error: {e}")
+                self._show_error("Backup Error", f"An error occurred: {str(e)}")
+            finally:
+                self.status_bar.configure(text="Ready")
 
     def handle_logout(self):
         """Handle user logout"""

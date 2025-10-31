@@ -39,6 +39,12 @@ class User(Base):  # type: ignore[valid-type,misc]
     failed_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime)
 
+    # Password recovery
+    recovery_question = Column(String(255), nullable=True)
+    recovery_answer_hash = Column(String(255), nullable=True)
+    password_reset_token = Column(String(255), nullable=True)
+    password_reset_expires = Column(DateTime, nullable=True)
+
     # Relationships
     files = relationship("SecureFile", back_populates="owner")
     audit_logs = relationship("AuditLog", back_populates="user")
@@ -60,6 +66,19 @@ class SecureFile(Base):  # type: ignore[valid-type,misc]
     last_accessed = Column(DateTime)
     access_count = Column(Integer, default=0)
     is_encrypted = Column(Boolean, default=True)
+
+    # Versioning
+    version = Column(Integer, default=1)
+    parent_file_id = Column(
+        Integer, ForeignKey("secure_files.id"), nullable=True
+    )  # For version chain
+    is_current_version = Column(Boolean, default=True)
+
+    # Tags
+    tags = relationship("FileTag", back_populates="file", cascade="all, delete-orphan")
+
+    # Versions (note: using FileVersion model instead of self-referential)
+    # versions tracked via FileVersion model, not self-referential relationship
 
     # Relationships
     owner = relationship("User", back_populates="files")
@@ -104,6 +123,43 @@ class AuditLog(Base):  # type: ignore[valid-type,misc]
     user = relationship("User", back_populates="audit_logs")
 
 
+class FileTag(Base):  # type: ignore[valid-type,misc]
+    """Model for file tags/labels"""
+
+    __tablename__ = "file_tags"
+
+    id = Column(Integer, primary_key=True)
+    file_id = Column(Integer, ForeignKey("secure_files.id"), nullable=False)
+    tag_name = Column(String(100), nullable=False)
+    tag_color = Column(String(20), nullable=True)  # For color coding
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Relationships
+    file = relationship("SecureFile", back_populates="tags")
+    creator = relationship("User")
+
+
+class FileVersion(Base):  # type: ignore[valid-type,misc]
+    """Model for file versioning"""
+
+    __tablename__ = "file_versions"
+
+    id = Column(Integer, primary_key=True)
+    file_id = Column(Integer, ForeignKey("secure_files.id"), nullable=False)
+    version_number = Column(Integer, nullable=False)
+    encrypted_path = Column(String(500), nullable=False)
+    file_hash = Column(String(64), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    notes = Column(Text, nullable=True)  # Version notes/changelog
+
+    # Relationships
+    file = relationship("SecureFile", foreign_keys=[file_id], overlaps="versions")
+    creator = relationship("User", foreign_keys=[created_by])
+
+
 class DatabaseManager:
     """Database connection and session management"""
 
@@ -122,10 +178,10 @@ class DatabaseManager:
             logger.error(f"Failed to create database tables: {e}")
             raise
 
-    def get_session(self):  # type: ignore[no-untyped-def]
+    def get_session(self):
         """Get database session"""
         return self.SessionLocal()
 
-    def close_session(self, session) -> None:  # type: ignore[no-untyped-def]
+    def close_session(self, session) -> None:
         """Close database session"""
         session.close()

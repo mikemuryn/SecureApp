@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class AuthenticationManager:
     """Handles user authentication and password management"""
 
-    def __init__(self, db_manager) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         self.max_login_attempts = 5
@@ -231,7 +231,7 @@ class AuthenticationManager:
             if session is not None:
                 self.db_manager.close_session(session)
 
-    def get_user_by_username(self, username: str):  # type: ignore[no-untyped-def]
+    def get_user_by_username(self, username: str):
         """Get user by username"""
         session = None
         try:
@@ -239,6 +239,215 @@ class AuthenticationManager:
             from ..models.database import User
 
             return session.query(User).filter(User.username == username).first()
+        finally:
+            if session is not None:
+                self.db_manager.close_session(session)
+
+    def set_recovery_question(
+        self, username: str, question: str, answer: str
+    ) -> tuple[bool, str]:
+        """
+        Set password recovery question and answer
+
+        Args:
+            username: Username
+            question: Security question
+            answer: Answer to security question
+
+        Returns:
+            (success, message)
+        """
+        session = None
+        try:
+            session = self.db_manager.get_session()
+            from ..models.database import User
+
+            user = session.query(User).filter(User.username == username).first()
+            if not user:
+                return False, "User not found"
+
+            # Hash the answer
+            answer_hash = self.hash_password(answer.lower().strip())
+
+            user.recovery_question = question
+            user.recovery_answer_hash = answer_hash
+            session.commit()
+
+            logger.info(f"Recovery question set for: {username}")
+            return True, "Recovery question set successfully"
+
+        except Exception as e:
+            if session is not None:
+                session.rollback()
+            logger.error(f"Failed to set recovery question for {username}: {e}")
+            return False, "Failed to set recovery question"
+        finally:
+            if session is not None:
+                self.db_manager.close_session(session)
+
+    def request_password_reset(
+        self, username: str, recovery_answer: str
+    ) -> tuple[bool, str, str]:
+        """
+        Request password reset using recovery answer
+
+        Args:
+            username: Username
+            recovery_answer: Answer to security question
+
+        Returns:
+            (success, message, reset_token)
+        """
+        session = None
+        try:
+            session = self.db_manager.get_session()
+            from ..models.database import User
+
+            user = session.query(User).filter(User.username == username).first()
+            if not user:
+                return False, "User not found", ""
+
+            if not user.recovery_question or not user.recovery_answer_hash:
+                return False, "Recovery question not set", ""
+
+            # Verify recovery answer
+            if not self.verify_password(
+                recovery_answer.lower().strip(), user.recovery_answer_hash
+            ):
+                logger.warning(f"Invalid recovery answer for: {username}")
+                return False, "Incorrect recovery answer", ""
+
+            # Generate reset token
+            reset_token = secrets.token_urlsafe(32)
+            user.password_reset_token = reset_token
+            user.password_reset_expires = datetime.utcnow() + timedelta(hours=1)
+            session.commit()
+
+            logger.info(f"Password reset token generated for: {username}")
+            return True, "Reset token generated", reset_token
+
+        except Exception as e:
+            if session is not None:
+                session.rollback()
+            logger.error(f"Failed to request password reset for {username}: {e}")
+            return False, "Failed to request password reset", ""
+        finally:
+            if session is not None:
+                self.db_manager.close_session(session)
+
+    def reset_password(
+        self, username: str, reset_token: str, new_password: str
+    ) -> tuple[bool, str]:
+        """
+        Reset password using reset token
+
+        Args:
+            username: Username
+            reset_token: Password reset token
+            new_password: New password
+
+        Returns:
+            (success, message)
+        """
+        session = None
+        try:
+            session = self.db_manager.get_session()
+            from ..models.database import User
+
+            user = session.query(User).filter(User.username == username).first()
+            if not user:
+                return False, "User not found"
+
+            # Verify token
+            if (
+                not user.password_reset_token
+                or user.password_reset_token != reset_token
+            ):
+                return False, "Invalid reset token"
+
+            # Check token expiration
+            if (
+                not user.password_reset_expires
+                or user.password_reset_expires < datetime.utcnow()
+            ):
+                return False, "Reset token has expired"
+
+            # Validate new password strength
+            is_valid, errors = self.validate_password_strength(new_password)
+            if not is_valid:
+                return False, f"Password validation failed: {', '.join(errors)}"
+
+            # Update password
+            user.password_hash = self.hash_password(new_password)
+            user.password_reset_token = None
+            user.password_reset_expires = None
+            user.failed_attempts = 0
+            user.locked_until = None
+            session.commit()
+
+            logger.info(f"Password reset successfully for: {username}")
+            return True, "Password reset successfully"
+
+        except Exception as e:
+            if session is not None:
+                session.rollback()
+            logger.error(f"Failed to reset password for {username}: {e}")
+            return False, "Failed to reset password"
+        finally:
+            if session is not None:
+                self.db_manager.close_session(session)
+
+    def admin_reset_password(
+        self, admin_username: str, target_username: str, new_password: str
+    ) -> tuple[bool, str]:
+        """
+        Admin-initiated password reset
+
+        Args:
+            admin_username: Admin username
+            target_username: Username to reset password for
+            new_password: New password
+
+        Returns:
+            (success, message)
+        """
+        session = None
+        try:
+            session = self.db_manager.get_session()
+            from ..models.database import User
+
+            admin = session.query(User).filter(User.username == admin_username).first()
+            if not admin or admin.role != "admin":
+                return False, "Admin access required"
+
+            user = session.query(User).filter(User.username == target_username).first()
+            if not user:
+                return False, "User not found"
+
+            # Validate new password strength
+            is_valid, errors = self.validate_password_strength(new_password)
+            if not is_valid:
+                return False, f"Password validation failed: {', '.join(errors)}"
+
+            # Update password
+            user.password_hash = self.hash_password(new_password)
+            user.failed_attempts = 0
+            user.locked_until = None
+            session.commit()
+
+            logger.info(
+                f"Password reset by admin {admin_username} for user: {target_username}"
+            )
+            return True, "Password reset successfully"
+
+        except Exception as e:
+            if session is not None:
+                session.rollback()
+            logger.error(
+                f"Failed to reset password by admin {admin_username} "
+                f"for {target_username}: {e}"
+            )
+            return False, "Failed to reset password"
         finally:
             if session is not None:
                 self.db_manager.close_session(session)
