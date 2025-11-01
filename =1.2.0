@@ -1,35 +1,0 @@
-2 channel Terms of Service accepted
-Channels:
- - conda-forge
- - defaults
-Platform: linux-64
-Collecting package metadata (repodata.json): - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / done
-Solving environment: \ | done
-
-## Package Plan ##
-
-  environment location: /home/mikemuryn/miniconda3/envs/secureapp
-
-  added / updated specs:
-    - schedule
-
-
-The following packages will be downloaded:
-
-    package                    |            build
-    ---------------------------|-----------------
-    schedule-1.2.2             |     pyhd8ed1ab_1          17 KB  conda-forge
-    ------------------------------------------------------------
-                                           Total:          17 KB
-
-The following NEW packages will be INSTALLED:
-
-  schedule           conda-forge/noarch::schedule-1.2.2-pyhd8ed1ab_1
-
-
-Proceed ([y]/n)?
-
-Downloading and Extracting Packages: ...working...schedule-1.2.2       | 17 KB     |            |   0% schedule-1.2.2       | 17 KB     | #########4 |  95% schedule-1.2.2       | 17 KB     | ########## | 100% schedule-1.2.2       | 17 KB     | ########## | 100%                                                       done
-Preparing transaction: - done
-Verifying transaction: | / - \ done
-Executing transaction: / - \ | / - \ | / - \ | / - \ done
