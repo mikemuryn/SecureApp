@@ -94,7 +94,16 @@ class SessionManager:
         if session_token not in self.sessions:
             return False
 
-        self.sessions[session_token]["last_activity"] = datetime.utcnow()
+        session_data = self.sessions[session_token]
+        if self._is_session_expired(session_data):
+            self.sessions.pop(session_token, None)
+            logger.info(
+                "Attempted to refresh expired session for user: %s",
+                session_data["username"],
+            )
+            return False
+
+        session_data["last_activity"] = datetime.utcnow()
         return True
 
     def destroy_session(self, session_token: str) -> bool:

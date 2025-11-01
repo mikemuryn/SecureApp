@@ -31,8 +31,9 @@ def cmd_upload(args):
     _, auth_manager, file_manager = init_managers()
 
     # Authenticate
-    if not auth_manager.authenticate_user(args.username, args.password):
-        print("❌ Authentication failed")
+    success, message = auth_manager.authenticate_user(args.username, args.password)
+    if not success:
+        print(f"❌ Authentication failed: {message}")
         return 1
 
     file_path = Path(args.file)
@@ -54,8 +55,9 @@ def cmd_download(args):
     _, auth_manager, file_manager = init_managers()
 
     # Authenticate
-    if not auth_manager.authenticate_user(args.username, args.password):
-        print("❌ Authentication failed")
+    success, message = auth_manager.authenticate_user(args.username, args.password)
+    if not success:
+        print(f"❌ Authentication failed: {message}")
         return 1
 
     success, temp_path, message = file_manager.download_file(
@@ -79,8 +81,9 @@ def cmd_list(args):
     _, auth_manager, file_manager = init_managers()
 
     # Authenticate
-    if not auth_manager.authenticate_user(args.username, args.password):
-        print("❌ Authentication failed")
+    success, message = auth_manager.authenticate_user(args.username, args.password)
+    if not success:
+        print(f"❌ Authentication failed: {message}")
         return 1
 
     files, total = file_manager.list_user_files(args.username, limit=args.limit)
@@ -119,8 +122,9 @@ def cmd_delete(args):
     _, auth_manager, file_manager = init_managers()
 
     # Authenticate
-    if not auth_manager.authenticate_user(args.username, args.password):
-        print("❌ Authentication failed")
+    success, message = auth_manager.authenticate_user(args.username, args.password)
+    if not success:
+        print(f"❌ Authentication failed: {message}")
         return 1
 
     if not args.yes:
@@ -147,8 +151,9 @@ def cmd_backup(args):
     # Authenticate as admin
     user = auth_manager.get_user_by_username(args.username)
     if not user or user.role != "admin":
-        if not auth_manager.authenticate_user(args.username, args.password):
-            print("❌ Authentication failed")
+        success, message = auth_manager.authenticate_user(args.username, args.password)
+        if not success:
+            print(f"❌ Authentication failed: {message}")
             return 1
 
         # Check if admin

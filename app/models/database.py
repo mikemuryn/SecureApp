@@ -3,6 +3,8 @@ Database Models for SecureApp
 """
 
 import logging
+import weakref
+from contextlib import contextmanager
 from datetime import datetime
 
 from sqlalchemy import (
@@ -16,6 +18,7 @@ from sqlalchemy import (
     create_engine,
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.pool import NullPool
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +69,8 @@ class SecureFile(Base):  # type: ignore[valid-type,misc]
     last_accessed = Column(DateTime)
     access_count = Column(Integer, default=0)
     is_encrypted = Column(Boolean, default=True)
+    encryption_key = Column(String(64), nullable=True)
+    encryption_salt = Column(String(64), nullable=True)
 
     # Versioning
     version = Column(Integer, default=1)
@@ -111,6 +116,7 @@ class AuditLog(Base):  # type: ignore[valid-type,misc]
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    username = Column(String(50), nullable=True)
     action = Column(String(50), nullable=False)  # login, logout, file_access, etc.
     resource = Column(String(255), nullable=True)  # filename, endpoint, etc.
     ip_address = Column(String(45), nullable=True)
@@ -164,10 +170,14 @@ class DatabaseManager:
     """Database connection and session management"""
 
     def __init__(self, database_url: str):
-        self.engine = create_engine(database_url)
+        # Use NullPool so every session gets a fresh connection that is closed
+        # immediately. The tests instantiate many temporary databases and this
+        # keeps sqlite3 from logging ResourceWarning messages about open handles.
+        self.engine = create_engine(database_url, poolclass=NullPool)
         self.SessionLocal = sessionmaker(
             autocommit=False, autoflush=False, bind=self.engine
         )
+        self._finalizer = weakref.finalize(self, self.dispose)
 
     def create_tables(self) -> None:
         """Create all database tables"""
@@ -185,3 +195,21 @@ class DatabaseManager:
     def close_session(self, session) -> None:
         """Close database session"""
         session.close()
+
+    def dispose(self) -> None:
+        """Dispose the engine and close any idle connections."""
+        if hasattr(self, "engine"):
+            self.engine.dispose()
+
+    @contextmanager
+    def session_scope(self):
+        """Transactional scope helper that guarantees cleanup."""
+        session = self.get_session()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            self.close_session(session)

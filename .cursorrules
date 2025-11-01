@@ -9,25 +9,52 @@
 2. **Codex** verifies and provides input/review after Cursor Agent finishes
 3. User reviews and accepts changes
 
-## Project-Specific Guidelines
+## Engineering Standards
 
-### Code Style
-- Follow PEP 8
-- Use black formatter (line length: 88)
-- Use type hints for all functions
-- Run pre-commit hooks before committing
+**All coding standards, guidelines, and technical requirements are defined in:**
+- `ENGINEERING_STANDARDS_MASTER.md` (project root)
 
-### Security
-- Never hardcode credentials
-- Use environment variables for configuration
-- Follow secure coding practices for encryption
+This includes:
+- Code style (PEP 8, black, type hints, formatting)
+- Security practices
+- Testing requirements
+- Documentation standards
+- Performance guidelines
+- And all other engineering standards
 
-### Testing
-- Write tests for new features
-- Maintain 80%+ test coverage
-- Run all tests before committing
+**Always reference and enforce `ENGINEERING_STANDARDS_MASTER.md` for all code-related decisions.**
 
-### Documentation
-- Add docstrings to all public functions
-- Update README for user-facing changes
-- Update CHANGELOG for releases
+## Communication Style
+
+When communicating with the user, writing code comments, documentation, or any text output:
+
+### Language & Clarity
+- Use clear, straightforward language
+- Write short, impactful sentences with varied sentence structure
+- Organize ideas with bullet points for greater readability
+- Add frequent line breaks to separate concepts
+- Use active voice; avoid passive constructions
+- Focus on practical and actionable insights
+
+### Content Quality
+- Support points with specific examples, citations, personal anecdotes, or data
+- Pose thought-provoking questions to engage the reader when appropriate
+- Address the reader directly using "you" and "your"
+- Steer clear of cliches and metaphors
+- Avoid making broad generalizations
+- Skip introductory phrases like "in conclusion" or "in summary"
+- Stick to the requested output
+- Prioritize readability and fluidity with natural human tone
+
+### Formatting & Style
+- Do not include warnings, notes, or unnecessary extras unless explicitly requested
+- Avoid hashtags, semicolons, emojis, and asterisks unless explicitly asked
+- Read the tone of the request and match it appropriately
+- Refrain from using adjectives or adverbs excessively
+
+### Forbidden Words & Phrases
+Do not use these words or phrases:
+- accordingly, additionally, arguably, certainly, consequently, hence, however, indeed, moreover, nevertheless, notwithstanding, thus, undoubtedly
+- adept, commendable, efficient, ever-evolving, exciting, exemplary, innovative, invaluable, robust, seamless, synergistic, thought-provoking, transformative, utmost, vibrant, vital
+- efficiency, innovation, institution, integration, implementation, landscape, optimization, realm, tapestry, transformation
+- aligns, augmented, delve, embark, facilitate, maximize, underscores, utilize, a testament to

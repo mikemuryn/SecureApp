@@ -1,0 +1,167 @@
+#!/bin/bash
+# Git commit wrapper that generates message, shows for review, then commits
+
+# Don't exit on error - we want to handle failures gracefully
+set +e
+
+# Get project root
+PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$PROJECT_ROOT" ]; then
+    echo "Error: Not in a git repository" >&2
+    exit 1
+fi
+
+cd "$PROJECT_ROOT" || exit 1
+
+# Check if there are any changes to commit (staged or unstaged)
+STAGED=$(git diff --cached --name-only 2>/dev/null || true)
+UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null || true)
+MODIFIED=$(git diff --name-only 2>/dev/null || true)
+
+if [ -z "$STAGED" ] && [ -z "$UNTRACKED" ] && [ -z "$MODIFIED" ]; then
+    echo "No changes to commit."
+    echo "Hint: Use 'git add' to stage files first"
+    exit 0
+fi
+
+# Generate commit message
+COMMIT_MSG=""
+
+# Try generate_commit_msg.sh first
+if [ -f "$PROJECT_ROOT/generate_commit_msg.sh" ] && [ -x "$PROJECT_ROOT/generate_commit_msg.sh" ]; then
+    COMMIT_MSG=$(timeout 5 bash "$PROJECT_ROOT/generate_commit_msg.sh" 2>/dev/null || true)
+fi
+
+# If generate_commit_msg.sh didn't work, try show_changes.sh
+if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    if [ -f "$PROJECT_ROOT/show_changes.sh" ] && [ -x "$PROJECT_ROOT/show_changes.sh" ]; then
+        # Run show_changes.sh with timeout and redirect stdin to skip interactive prompts
+        OUTPUT=$(timeout 10 bash "$PROJECT_ROOT/show_changes.sh" </dev/null 2>/dev/null || true)
+        if [ -n "$OUTPUT" ]; then
+            IN_SECTION=0
+            COMMIT_MSG=""
+            while IFS= read -r line || [ -n "$line" ]; do
+                if [ "$line" = '```' ]; then
+                    if [ "$IN_SECTION" -eq 0 ]; then
+                        IN_SECTION=1
+                    else
+                        break
+                    fi
+                elif [ "$IN_SECTION" -eq 1 ]; then
+                    if [ -z "$COMMIT_MSG" ]; then
+                        COMMIT_MSG="$line"
+                    else
+                        COMMIT_MSG="$COMMIT_MSG"$'\n'"$line"
+                    fi
+                fi
+            done <<< "$OUTPUT"
+        fi
+    fi
+fi
+
+# Trim whitespace
+if [ -n "$COMMIT_MSG" ]; then
+    COMMIT_MSG=$(echo "$COMMIT_MSG" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null | sed -z 's/\n$//' 2>/dev/null || echo "$COMMIT_MSG")
+fi
+
+# If no message generated, create a simple one from git status
+if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    # Fallback: create simple commit message from changes
+    if [ -n "$STAGED" ]; then
+        FILE_COUNT=$(echo "$STAGED" | wc -l | tr -d ' ')
+        FILES=$(echo "$STAGED" | head -5 | tr '\n' ',' | sed 's/,$//')
+        COMMIT_MSG="chore: update files
+
+- Modified: $FILES"
+        if [ "$FILE_COUNT" -gt 5 ]; then
+            COMMIT_MSG="$COMMIT_MSG and $((FILE_COUNT - 5)) more"
+        fi
+    elif [ -n "$UNTRACKED" ]; then
+        FILE_COUNT=$(echo "$UNTRACKED" | wc -l | tr -d ' ')
+        FILES=$(echo "$UNTRACKED" | head -5 | tr '\n' ',' | sed 's/,$//')
+        COMMIT_MSG="chore: add new files
+
+- Added: $FILES"
+        if [ "$FILE_COUNT" -gt 5 ]; then
+            COMMIT_MSG="$COMMIT_MSG and $((FILE_COUNT - 5)) more"
+        fi
+    elif [ -n "$MODIFIED" ]; then
+        FILE_COUNT=$(echo "$MODIFIED" | wc -l | tr -d ' ')
+        FILES=$(echo "$MODIFIED" | head -5 | tr '\n' ',' | sed 's/,$//')
+        COMMIT_MSG="chore: update files
+
+- Modified: $FILES"
+        if [ "$FILE_COUNT" -gt 5 ]; then
+            COMMIT_MSG="$COMMIT_MSG and $((FILE_COUNT - 5)) more"
+        fi
+        echo "Note: You have unstaged changes. Only staged files will be committed."
+        echo "      Stage files with 'git add' to include them."
+        echo ""
+    else
+        echo "Error: Could not generate commit message and no changes detected" >&2
+        exit 1
+    fi
+fi
+
+# Display the generated commit message
+echo ""
+echo "=========================================="
+echo "Generated Commit Message:"
+echo "=========================================="
+echo ""
+echo "$COMMIT_MSG"
+echo ""
+echo "=========================================="
+echo ""
+
+# Show what will be committed
+echo "Files to commit:"
+if [ -n "$STAGED" ]; then
+    echo "$STAGED" | sed 's/^/  [staged]   /'
+fi
+if [ -n "$UNTRACKED" ]; then
+    echo "$UNTRACKED" | sed 's/^/  [new]      /'
+fi
+if [ -z "$STAGED" ] && [ -z "$UNTRACKED" ] && [ -n "$MODIFIED" ]; then
+    echo "  [warning]  No staged files. Run 'git add' first."
+fi
+echo ""
+
+# Ask for confirmation
+read -p "Commit with this message? (y/n/e for edit): " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Stage untracked files if any
+    if [ -n "$UNTRACKED" ]; then
+        echo "$UNTRACKED" | xargs git add 2>/dev/null || true
+    fi
+    # Commit with the message
+    if [ -n "$STAGED" ] || [ -n "$UNTRACKED" ]; then
+        echo "$COMMIT_MSG" | git commit -F - 2>&1
+        echo ""
+        echo "✅ Committed successfully!"
+    else
+        echo "Error: No files staged for commit. Use 'git add' first." >&2
+        exit 1
+    fi
+elif [[ $REPLY =~ ^[Ee]$ ]]; then
+    # Allow user to edit
+    echo "$COMMIT_MSG" > /tmp/git-commit-msg.txt
+    ${EDITOR:-nano} /tmp/git-commit-msg.txt
+    if [ -s /tmp/git-commit-msg.txt ]; then
+        # Stage untracked files if any
+        if [ -n "$UNTRACKED" ]; then
+            echo "$UNTRACKED" | xargs git add 2>/dev/null || true
+        fi
+        git commit -F /tmp/git-commit-msg.txt 2>&1
+        echo ""
+        echo "✅ Committed with edited message!"
+    else
+        echo "Commit cancelled."
+        exit 1
+    fi
+    rm -f /tmp/git-commit-msg.txt
+else
+    echo "Commit cancelled."
+    exit 0
+fi

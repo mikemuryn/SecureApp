@@ -99,5 +99,5 @@ def test_list_files_admin_sees_all(tmp_path, temp_db_file, temp_log_file):
     f.write_text("c")
     ok, _ = fam.upload_file(f, "uu", "StrongPassword123!")
     assert ok
-    files_admin = fam.list_user_files("adminu")
+    files_admin, total = fam.list_user_files("adminu")
     assert files_admin and files_admin[0]["owner"] == "uu"

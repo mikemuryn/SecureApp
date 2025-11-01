@@ -3,17 +3,53 @@ File Access Control Module
 Handles secure file operations and permissions
 """
 
+import base64
 import csv
 import hashlib
 import json
 import logging
+import os
 import shutil
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+
+
+class FileListResult:
+    """List-like wrapper that also exposes the total record count."""
+
+    def __init__(self, files: List[Dict], total: int):
+        self._files = files
+        self.total = total
+
+    def __iter__(self):
+        yield self._files
+        yield self.total
+
+    def __len__(self) -> int:
+        return len(self._files)
+
+    def __getitem__(self, item):
+        return self._files[item]
+
+    def __bool__(self) -> bool:  # pragma: no cover - trivial
+        return bool(self._files)
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, FileListResult):
+            return self._files == other._files
+        return self._files == other
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging helper
+        return f"FileListResult(files={self._files!r}, total={self.total})"
+
+    @property
+    def files(self) -> List[Dict]:
+        """Access the underlying file metadata list."""
+        return self._files
 
 
 class FileAccessManager:
@@ -29,43 +65,42 @@ class FileAccessManager:
         self.encryption_manager = encryption_manager
         self.audit_logger = audit_logger
         self.temp_dir = Path("temp")
-        self.temp_dir.mkdir(exist_ok=True)
+        self.temp_dir.mkdir(parents=True, exist_ok=True)
 
     def upload_file(
         self, file_path: Path, username: str, password: str
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """
         Upload and encrypt a file
 
         Args:
             file_path: Path to file to upload
             username: Username uploading the file
-            password: User password for encryption
+            password: User password (retained for API compatibility)
 
         Returns:
             (success, message)
         """
+        del password  # Encryption now uses per-file secrets instead of user password
+        file_path = Path(file_path)
+
         try:
-            # Validate file
             if not file_path.exists():
                 return False, "File does not exist"
 
             if file_path.stat().st_size > 100 * 1024 * 1024:  # 100MB limit
                 return False, "File too large (max 100MB)"
 
-            # Calculate file hash
             file_hash = self._calculate_file_hash(file_path)
 
-            # Check if file already exists
             session = self.db_manager.get_session()
             try:
-                from ..models.database import SecureFile, User
+                from ..models.database import FileVersion, SecureFile, User
 
                 user = session.query(User).filter(User.username == username).first()
                 if not user:
                     return False, "User not found"
 
-                # Check if file with same name exists (for versioning)
                 existing_file = (
                     session.query(SecureFile)
                     .filter(
@@ -76,14 +111,9 @@ class FileAccessManager:
                     .first()
                 )
 
-                # If same filename exists, create new version instead of error
                 if existing_file:
-                    # Mark old version as not current
                     existing_file.is_current_version = False
-                    # Create version record
-                    from ..models.database import FileVersion
 
-                    # Get next version number
                     max_version = (
                         session.query(FileVersion)
                         .filter(FileVersion.file_id == existing_file.id)
@@ -94,14 +124,16 @@ class FileAccessManager:
                         (max_version.version_number + 1) if max_version else 2
                     )
 
-                    # Encrypt new version
                     encrypted_path = (
                         Path("data/encrypted") / f"{file_path.name}.v{next_version}.enc"
                     )
-                    encryption = self.encryption_manager(password)
+                    secret = self._generate_file_secret()
+                    encryption = self._create_encryption_context(secret)
                     encryption.encrypt_file(file_path, encrypted_path)
+                    salt_b64 = base64.urlsafe_b64encode(encryption.get_salt()).decode(
+                        "utf-8"
+                    )
 
-                    # Create version record
                     file_version = FileVersion(
                         file_id=existing_file.id,
                         version_number=next_version,
@@ -112,42 +144,43 @@ class FileAccessManager:
                     )
                     session.add(file_version)
 
-                    # Update main file record
                     existing_file.encrypted_path = str(encrypted_path)
                     existing_file.file_hash = file_hash
                     existing_file.file_size = file_path.stat().st_size
                     existing_file.is_current_version = True
-                    existing_file.last_accessed = None  # Reset access time
+                    existing_file.last_accessed = None
+                    existing_file.encryption_key = secret
+                    existing_file.encryption_salt = salt_b64
 
                     session.commit()
 
-                    # Log the event
                     self.audit_logger.log_file_access(
                         username, file_path.name, "upload_version", True
                     )
-
                     logger.info(
-                        f"File version {next_version} uploaded: "
-                        f"{file_path.name} by {username}"
+                        "File version %s uploaded: %s by %s",
+                        next_version,
+                        file_path.name,
+                        username,
                     )
                     return True, f"File version {next_version} uploaded successfully"
 
-                # Check for exact duplicate (same hash)
                 duplicate_file = (
                     session.query(SecureFile)
                     .filter(SecureFile.file_hash == file_hash)
                     .first()
                 )
-
                 if duplicate_file:
                     return False, "Exact duplicate file already exists in system"
 
-                # Encrypt file
                 encrypted_path = Path("data/encrypted") / f"{file_path.name}.enc"
-                encryption = self.encryption_manager(password)
+                secret = self._generate_file_secret()
+                encryption = self._create_encryption_context(secret)
                 encryption.encrypt_file(file_path, encrypted_path)
+                salt_b64 = base64.urlsafe_b64encode(encryption.get_salt()).decode(
+                    "utf-8"
+                )
 
-                # Save file record
                 secure_file = SecureFile(
                     filename=file_path.name,
                     original_path=str(file_path),
@@ -156,32 +189,31 @@ class FileAccessManager:
                     file_size=file_path.stat().st_size,
                     owner_id=user.id,
                     is_encrypted=True,
+                    encryption_key=secret,
+                    encryption_salt=salt_b64,
                 )
 
                 session.add(secure_file)
                 session.commit()
 
-                # Log the event
                 self.audit_logger.log_file_access(
                     username, file_path.name, "upload", True
                 )
-
                 logger.info(
-                    f"File uploaded successfully: {file_path.name} by {username}"
+                    "File uploaded successfully: %s by %s", file_path.name, username
                 )
                 return True, "File uploaded and encrypted successfully"
-
             finally:
                 self.db_manager.close_session(session)
 
         except Exception as e:
-            logger.error(f"File upload failed: {e}")
+            logger.error("File upload failed: %s", e)
             self.audit_logger.log_file_access(username, str(file_path), "upload", False)
             return False, f"Upload failed: {str(e)}"
 
     def download_file(
         self, file_id: int, username: str, password: str
-    ) -> tuple[bool, Optional[Path], str]:
+    ) -> Tuple[bool, Optional[Path], str]:
         """
         Download and decrypt a file
 
@@ -193,6 +225,7 @@ class FileAccessManager:
         Returns:
             (success, temp_file_path, message)
         """
+        del password  # Retained for backwards compatibility
         try:
             session = self.db_manager.get_session()
             try:
@@ -217,10 +250,22 @@ class FileAccessManager:
                     return False, None, "Access denied"
 
                 # Decrypt file to temporary location
+                if not secure_file.encryption_key or not secure_file.encryption_salt:
+                    raise ValueError("Encryption metadata missing for file")
+
+                try:
+                    salt_bytes = base64.urlsafe_b64decode(
+                        secure_file.encryption_salt.encode("utf-8")
+                    )
+                except Exception as exc:
+                    raise ValueError("Invalid encryption metadata") from exc
+
                 encrypted_path = Path(secure_file.encrypted_path)
                 temp_file_path = self.temp_dir / secure_file.filename
 
-                encryption = self.encryption_manager(password)
+                encryption = self._create_encryption_context(
+                    secure_file.encryption_key, salt_bytes
+                )
                 encryption.decrypt_file(encrypted_path, temp_file_path)
 
                 # Update access statistics
@@ -248,105 +293,77 @@ class FileAccessManager:
 
     def list_user_files(
         self, username: str, limit: Optional[int] = None, offset: int = 0
-    ) -> tuple[List[Dict], int]:
+    ) -> FileListResult:
         """
-        List files accessible to user with pagination support
-
-        Args:
-            username: Username
-            limit: Maximum number of files to return (None for all)
-            offset: Number of files to skip for pagination
+        List files accessible to a user with optional pagination.
 
         Returns:
-            Tuple of (list of file information dictionaries, total count)
+            FileListResult containing the file metadata list and total count.
         """
         try:
             session = self.db_manager.get_session()
             try:
-                from ..models.database import SecureFile, User
+                from ..models.database import FilePermission, SecureFile, User
 
                 user = session.query(User).filter(User.username == username).first()
                 if not user:
-                    return [], 0
+                    return FileListResult([], 0)
 
-                # Admin users can see all files (current versions only)
-                if user.role == "admin":
-                    query = (
-                        session.query(SecureFile)
-                        .filter(SecureFile.is_current_version == True)  # noqa: E712
-                        .order_by(SecureFile.created_at.desc())
-                    )
-                    total_count = query.count()
+                def _build_entry(file_obj) -> Dict:
+                    tags = [tag.tag_name for tag in file_obj.tags]
+                    return {
+                        "id": file_obj.id,
+                        "filename": file_obj.filename,
+                        "size": file_obj.file_size,
+                        "file_size": file_obj.file_size,
+                        "created_at": file_obj.created_at,
+                        "last_accessed": file_obj.last_accessed,
+                        "access_count": file_obj.access_count,
+                        "owner": file_obj.owner.username,
+                        "tags": tags,
+                        "version": file_obj.version,
+                    }
 
-                    if limit is not None:
-                        query = query.offset(offset).limit(limit)
-                    else:
-                        query = query.offset(offset)
-
-                    all_files = query.all()
-                    files = []
-                    for file in all_files:
-                        tags = [tag.tag_name for tag in file.tags]
-                        files.append(
-                            {
-                                "id": file.id,
-                                "filename": file.filename,
-                                "size": file.file_size,
-                                "created_at": file.created_at,
-                                "last_accessed": file.last_accessed,
-                                "access_count": file.access_count,
-                                "owner": file.owner.username,
-                                "tags": tags,
-                                "version": file.version,
-                            }
-                        )
-                    return files, total_count
-
-                # Regular users see only their own files (current versions only)
-                query = (
+                base_query = (
                     session.query(SecureFile)
-                    .filter(
-                        SecureFile.owner_id == user.id,
-                        SecureFile.is_current_version == True,  # noqa: E712
-                    )
+                    .filter(SecureFile.is_current_version == True)  # noqa: E712
                     .order_by(SecureFile.created_at.desc())
                 )
-                total_count = query.count()
 
-                if limit is not None:
-                    query = query.offset(offset).limit(limit)
+                if user.role == "admin":
+                    query = base_query
                 else:
-                    query = query.offset(offset)
-
-                owned_files = query.all()
-
-                files = []
-                for file in owned_files:
-                    tags = [tag.tag_name for tag in file.tags]
-                    files.append(
-                        {
-                            "id": file.id,
-                            "filename": file.filename,
-                            "size": file.file_size,
-                            "created_at": file.created_at,
-                            "last_accessed": file.last_accessed,
-                            "access_count": file.access_count,
-                            "owner": file.owner.username,
-                            "tags": tags,
-                            "version": file.version,
-                        }
+                    shared_permissions = (
+                        session.query(FilePermission)
+                        .filter(FilePermission.user_id == user.id)
+                        .all()
                     )
+                    shared_file_ids = [perm.file_id for perm in shared_permissions]
 
-                return files, total_count
+                    if shared_file_ids:
+                        query = base_query.filter(
+                            (SecureFile.owner_id == user.id)
+                            | (SecureFile.id.in_(shared_file_ids))
+                        )
+                    else:
+                        query = base_query.filter(SecureFile.owner_id == user.id)
+
+                total_count = query.count()
+                query = query.offset(offset)
+                if limit is not None:
+                    query = query.limit(limit)
+
+                files = [_build_entry(file) for file in query.all()]
+                return FileListResult(files, total_count)
 
             finally:
                 self.db_manager.close_session(session)
 
         except Exception as e:
-            logger.error(f"Failed to list files for {username}: {e}")
-            return [], 0
+            logger.error("Failed to list files for %s: %s", username, e)
+            return FileListResult([], 0)
 
-    def delete_file(self, file_id: int, username: str) -> tuple[bool, str]:
+    def delete_file(self, file_id: int, username: str) -> Tuple[bool, str]:
         """
         Delete a file
 
@@ -415,6 +432,34 @@ class FileAccessManager:
                 hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
 
+    def _generate_file_secret(self) -> str:
+        """Create a random per-file secret used for encryption."""
+        return base64.urlsafe_b64encode(os.urandom(32)).decode("utf-8")
+
+    def _create_encryption_context(
+        self, secret: str, salt: Optional[bytes] = None
+    ) -> Any:
+        """
+        Instantiate the configured encryption manager with optional salt support.
+
+        Supports callables that expect the salt either as a keyword argument, a
+        positional argument, or via a mutator such as ``set_salt`` after creation.
+        """
+        if salt is None:
+            return self.encryption_manager(secret)
+
+        try:
+            return self.encryption_manager(secret, salt=salt)
+        except TypeError:
+            try:
+                return self.encryption_manager(secret, salt)
+            except TypeError:
+                encryption = self.encryption_manager(secret)
+                if hasattr(encryption, "set_salt"):
+                    encryption.set_salt(salt)
+                    return encryption
+                raise
+
     def _has_file_permission(
         self, session: Any, user: Any, file: Any, permission_type: str
     ) -> bool:
@@ -453,7 +498,7 @@ class FileAccessManager:
 
     def create_file_version(
         self, file_id: int, username: str, password: str, notes: Optional[str] = None
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """Create a new version of an existing file"""
         try:
             session = self.db_manager.get_session()
@@ -531,7 +576,7 @@ class FileAccessManager:
         username: str,
         tag_name: str,
         tag_color: Optional[str] = None,
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """Add a tag to a file"""
         try:
             session = self.db_manager.get_session()
@@ -632,7 +677,7 @@ class FileAccessManager:
         owner_username: str,
         shared_with_username: str,
         permission_type: str = "read",
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """Share a file with another user"""
         try:
             session = self.db_manager.get_session()
@@ -661,6 +706,10 @@ class FileAccessManager:
 
                 if secure_file.owner_id != owner.id:
                     return False, "Only file owner can share files"
+
+                # Can't share with yourself
+                if shared_with.id == owner.id:
+                    return False, "Cannot share file with yourself"
 
                 # Check if permission already exists
                 existing = (
@@ -700,7 +749,7 @@ class FileAccessManager:
 
     def revoke_file_share(
         self, file_id: int, owner_username: str, shared_with_username: str
-    ) -> tuple[bool, str]:
+    ) -> Tuple[bool, str]:
         """Revoke file sharing with a user"""
         try:
             session = self.db_manager.get_session()
@@ -746,7 +795,8 @@ class FileAccessManager:
     def export_file_list(self, username: str, export_path: Path) -> tuple[bool, str]:
         """Export file list to CSV"""
         try:
-            files, _ = self.list_user_files(username)
+            result = self.list_user_files(username)
+            files = result.files if isinstance(result, FileListResult) else result
             with open(export_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(
                     f,
@@ -754,7 +804,7 @@ class FileAccessManager:
                         "id",
                         "filename",
                         "owner",
-                        "size",
+                        "file_size",
                         "created_at",
                         "last_accessed",
                         "access_count",
@@ -762,12 +812,22 @@ class FileAccessManager:
                 )
                 writer.writeheader()
                 for file_info in files:
+                    file_size = (
+                        file_info.get("file_size")
+                        if isinstance(file_info, dict)
+                        else None
+                    )
+
                     writer.writerow(
                         {
                             "id": file_info["id"],
                             "filename": file_info["filename"],
                             "owner": file_info.get("owner", username),
-                            "size": file_info["size"],
+                            "file_size": (
+                                file_size
+                                if file_size is not None
+                                else file_info.get("size")
+                            ),
                             "created_at": (
                                 file_info["created_at"].isoformat()
                                 if file_info["created_at"]

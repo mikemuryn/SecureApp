@@ -35,8 +35,15 @@ class AuditLogger:
         file_handler.setFormatter(formatter)
 
         audit_logger = logging.getLogger("audit")
-        audit_logger.addHandler(file_handler)
+        handler_already_configured = any(
+            isinstance(handler, logging.FileHandler)
+            and Path(getattr(handler, "baseFilename", "")) == self.log_file
+            for handler in audit_logger.handlers
+        )
+        if not handler_already_configured:
+            audit_logger.addHandler(file_handler)
         audit_logger.setLevel(logging.INFO)
+        audit_logger.propagate = False
 
     def log_event(
         self,
@@ -62,8 +69,9 @@ class AuditLogger:
             success: Whether action was successful
             details: Additional details
         """
+        timestamp = datetime.utcnow()
         event_data = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": timestamp,
             "user_id": user_id,
             "username": username,
             "action": action,
@@ -104,18 +112,31 @@ class AuditLogger:
         assert db_manager is not None
 
         try:
-            from ..models.database import AuditLog
+            from ..models.database import AuditLog, User
 
             session = db_manager.get_session()
             try:
+                # Look up user_id from username if user_id not provided
+                user_id = event_data["user_id"]
+                if user_id is None and event_data.get("username"):
+                    user = (
+                        session.query(User)
+                        .filter(User.username == event_data["username"])
+                        .first()
+                    )
+                    if user:
+                        user_id = user.id
+
                 audit_log = AuditLog(
-                    user_id=event_data["user_id"],
+                    user_id=user_id,
+                    username=event_data.get("username"),
                     action=event_data["action"],
                     resource=event_data["resource"],
                     ip_address=event_data["ip_address"],
                     user_agent=event_data["user_agent"],
                     success=event_data["success"],
                     details=event_data["details"],
+                    timestamp=event_data["timestamp"],
                 )
 
                 session.add(audit_log)
@@ -183,16 +204,27 @@ class AuditLogger:
             details=f"User creation: {username}",
         )
 
-    def log_security_event(self, username: str, event: str, details: str) -> None:
+    def log_security_event(
+        self,
+        username: str,
+        event_type: str,
+        details: str,
+        *,
+        resource: Optional[str] = None,
+        success: bool = False,
+    ) -> None:
         """Log security-related event"""
         self.log_event(
             username=username,
             action="security_event",
-            success=False,
-            details=f"{event}: {details}",
+            resource=resource,
+            success=success,
+            details=f"{event_type}: {details}",
         )
 
-    def get_recent_events(self, hours: int = 24) -> list:
+    def get_recent_events(
+        self, *, hours: Optional[int] = 24, limit: Optional[int] = 100
+    ) -> list:
         """Get recent audit events from database"""
         if self.db_manager is None:
             return []
@@ -208,20 +240,22 @@ class AuditLogger:
 
             session = db_manager.get_session()
             try:
-                cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+                query = session.query(AuditLog).order_by(AuditLog.timestamp.desc())
+                if hours is not None:
+                    cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+                    query = query.filter(AuditLog.timestamp >= cutoff_time)
+                if limit is not None:
+                    query = query.limit(limit)
 
-                events = (
-                    session.query(AuditLog)
-                    .filter(AuditLog.timestamp >= cutoff_time)
-                    .order_by(AuditLog.timestamp.desc())
-                    .limit(100)
-                    .all()
-                )
+                events = query.all()
 
                 return [
                     {
                         "timestamp": event.timestamp,
-                        "username": event.user.username if event.user else "ANONYMOUS",
+                        "username": (
+                            event.username
+                            or (event.user.username if event.user else "ANONYMOUS")
+                        ),
                         "action": event.action,
                         "resource": event.resource,
                         "success": event.success,

@@ -9,39 +9,110 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from cryptography.exceptions import InvalidTag
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = logging.getLogger(__name__)
 
+NONCE_SIZE = 12
+TAG_SIZE = 16
+
 
 class FileEncryption:
-    """Handles encryption and decryption of files"""
+    """Handles encryption and decryption of files."""
 
     def __init__(self, password: str, salt: Optional[bytes] = None):
         """
-        Initialize encryption with password and optional salt
+        Initialize encryption with password and optional salt.
 
         Args:
-            password: User password for key derivation
-            salt: Optional salt (generated if not provided)
+            password: Secret used for key derivation.
+            salt: Optional salt (generated if not provided).
         """
         self.password = password.encode()
-        self.salt = salt or os.urandom(16)
+        self.salt = bytes(salt) if salt is not None else os.urandom(16)
+        self._refresh_derived_materials()
+
+    def _refresh_derived_materials(self) -> None:
+        """Derive cryptographic material from the current password and salt."""
         self._key = self._derive_key()
-        self._fernet = Fernet(self._key)
+        fernet_key = base64.urlsafe_b64encode(self._key)
+        self._fernet = Fernet(fernet_key)
+        self._aesgcm = AESGCM(self._key)
+
+    def set_salt(self, salt: bytes) -> None:
+        """Update the salt and recompute derived keys."""
+        self.salt = bytes(salt)
+        self._refresh_derived_materials()
 
     def _derive_key(self) -> bytes:
-        """Derive encryption key from password using PBKDF2"""
+        """Derive encryption key from password using PBKDF2."""
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=self.salt,
             iterations=100000,
         )
-        key = base64.urlsafe_b64encode(kdf.derive(self.password))
-        return key
+        return kdf.derive(self.password)
+
+    def _decrypt_with_metadata(self, encrypted_data: bytes) -> bytes:
+        """Decrypt payload written with the current metadata-prefixed format."""
+        min_length = 1 + NONCE_SIZE + TAG_SIZE
+        if len(encrypted_data) < min_length:
+            raise ValueError("Encrypted payload is too small to contain metadata")
+
+        salt_len = encrypted_data[0]
+        if salt_len <= 0:
+            raise ValueError("Invalid salt length in encrypted payload")
+
+        header_end = 1 + salt_len + NONCE_SIZE
+        if len(encrypted_data) <= header_end:
+            raise ValueError("Encrypted payload missing ciphertext data")
+
+        stored_salt = encrypted_data[1 : 1 + salt_len]
+        nonce = encrypted_data[1 + salt_len : header_end]
+        ciphertext = encrypted_data[header_end:]
+
+        if stored_salt != self.salt:
+            self.set_salt(stored_salt)
+
+        try:
+            return self._aesgcm.decrypt(nonce, ciphertext, None)
+        except InvalidTag as exc:
+            raise ValueError(
+                "Failed to decrypt file; the password or data may be incorrect."
+            ) from exc
+
+    def _decrypt_legacy_format(
+        self, encrypted_data: bytes, original_error: ValueError
+    ) -> bytes:
+        """
+        Support decrypting files produced by earlier versions that omitted metadata.
+
+        Legacy files always used a 16-byte salt followed by a 12-byte nonce.
+        """
+        legacy_header = 16 + NONCE_SIZE
+        if len(encrypted_data) < legacy_header + TAG_SIZE:
+            raise original_error
+
+        stored_salt = encrypted_data[:16]
+        nonce = encrypted_data[16 : 16 + NONCE_SIZE]
+        ciphertext = encrypted_data[legacy_header:]
+
+        original_salt = self.salt
+        try:
+            if stored_salt != self.salt:
+                self.set_salt(stored_salt)
+            return self._aesgcm.decrypt(nonce, ciphertext, None)
+        except InvalidTag as exc:
+            if stored_salt != original_salt:
+                self.set_salt(original_salt)
+            raise ValueError(
+                "Failed to decrypt file; the password or data may be incorrect."
+            ) from exc
 
     def encrypt_file(
         self, file_path: Path, encrypted_path: Optional[Path] = None
@@ -56,26 +127,30 @@ class FileEncryption:
         Returns:
             Path to encrypted file
         """
+        file_path = Path(file_path)
         if encrypted_path is None:
             encrypted_path = Path("encrypted") / f"{file_path.name}.enc"
+        encrypted_path = Path(encrypted_path)
 
         try:
-            # Ensure output directory exists
             encrypted_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(file_path, "rb") as file:
-                file_data = file.read()
+            file_data = file_path.read_bytes()
 
-            encrypted_data = self._fernet.encrypt(file_data)
+            salt_len = len(self.salt)
+            if not 1 <= salt_len <= 255:
+                raise ValueError("Salt must be between 1 and 255 bytes")
 
-            # Save salt + encrypted data
+            nonce = os.urandom(NONCE_SIZE)
+            ciphertext = self._aesgcm.encrypt(nonce, file_data, None)
+
             with open(encrypted_path, "wb") as file:
-                file.write(self.salt + encrypted_data)
+                file.write(bytes([salt_len]) + self.salt + nonce + ciphertext)
 
-            logger.info(f"File encrypted: {file_path} -> {encrypted_path}")
+            logger.info("File encrypted: %s -> %s", file_path, encrypted_path)
             return encrypted_path
 
         except Exception as e:
-            logger.error(f"Encryption failed for {file_path}: {e}")
+            logger.error("Encryption failed for %s: %s", file_path, e)
             raise
 
     def decrypt_file(
@@ -91,54 +166,40 @@ class FileEncryption:
         Returns:
             Path to decrypted file
         """
+        encrypted_path = Path(encrypted_path)
         if output_path is None:
-            output_path = Path("temp") / encrypted_path.stem
+            default_name = f"{encrypted_path.stem}.dec"
+            output_path = Path("temp") / default_name
+        output_path = Path(output_path)
 
         try:
-            with open(encrypted_path, "rb") as file:
-                encrypted_data = file.read()
+            encrypted_data = encrypted_path.read_bytes()
+            try:
+                plaintext = self._decrypt_with_metadata(encrypted_data)
+            except ValueError as metadata_error:
+                plaintext = self._decrypt_legacy_format(encrypted_data, metadata_error)
 
-            # Extract salt and encrypted data
-            salt = encrypted_data[:16]
-            encrypted_content = encrypted_data[16:]
-
-            # Recreate encryption object with extracted salt
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=salt,
-                iterations=100000,
-            )
-            key = base64.urlsafe_b64encode(kdf.derive(self.password))
-            fernet = Fernet(key)
-
-            decrypted_data = fernet.decrypt(encrypted_content)
-
-            # Ensure output directory exists
             output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(plaintext)
 
-            with open(output_path, "wb") as file:
-                file.write(decrypted_data)
-
-            logger.info(f"File decrypted: {encrypted_path} -> {output_path}")
+            logger.info("File decrypted: %s -> %s", encrypted_path, output_path)
             return output_path
 
         except Exception as e:
-            logger.error(f"Decryption failed for {encrypted_path}: {e}")
+            logger.error("Decryption failed for %s: %s", encrypted_path, e)
             raise
 
     def encrypt_string(self, text: str) -> str:
-        """Encrypt a string and return base64 encoded result"""
+        """Encrypt a string and return base64 encoded result."""
         encrypted_data = self._fernet.encrypt(text.encode())
         return base64.urlsafe_b64encode(encrypted_data).decode()
 
     def decrypt_string(self, encrypted_text: str) -> str:
-        """Decrypt a base64 encoded string"""
+        """Decrypt a base64 encoded string."""
         encrypted_data = base64.urlsafe_b64decode(encrypted_text.encode())
         decrypted_data = self._fernet.decrypt(encrypted_data)
-        result: str = decrypted_data.decode(encoding="utf-8")
-        return result
+        return decrypted_data.decode("utf-8")
 
     def get_salt(self) -> bytes:
-        """Get the salt used for key derivation"""
+        """Get the salt used for key derivation."""
         return self.salt

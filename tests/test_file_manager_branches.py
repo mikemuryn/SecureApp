@@ -34,7 +34,8 @@ def test_upload_duplicate_and_user_not_found(tmp_path, temp_db_file, temp_log_fi
     ok, _ = fam.upload_file(f, "dupuser", "StrongPassword123!")
     assert ok
     ok, msg = fam.upload_file(f, "dupuser", "StrongPassword123!")
-    assert not ok and "already exists" in msg
+    # Upload with same name creates a new version, doesn't fail
+    assert ok  # Versioning allows duplicate names
     ok, msg = fam.upload_file(f, "nouser", "StrongPassword123!")
     assert not ok and "User not found" in msg
 
@@ -71,7 +72,8 @@ def test_delete_access_denied_and_file_not_found(tmp_path, temp_db_file, temp_lo
     src = tmp_path / "b.txt"
     src.write_text("b")
     ok, _ = fam.upload_file(src, "own", "StrongPassword123!")
-    file_id = fam.list_user_files("own")[0]["id"]
+    files, _ = fam.list_user_files("own")
+    file_id = files[0]["id"]
     ok, msg = fam.delete_file(file_id, "oth")
     assert not ok and "denied" in msg.lower()
     # delete unknown id

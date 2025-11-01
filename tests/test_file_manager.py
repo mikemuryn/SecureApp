@@ -53,8 +53,9 @@ def test_file_manager_upload_list_download_delete(
         ok, msg = fam.upload_file(src, "erin", "StrongPassword123!")
         assert ok, msg
 
-        files = fam.list_user_files("erin")
+        files, total = fam.list_user_files("erin")
         assert len(files) == 1 and files[0]["filename"] == "hello.txt"
+        assert total == 1
 
         file_id = files[0]["id"]
         ok, temp_out, _ = fam.download_file(file_id, "erin", "StrongPassword123!")

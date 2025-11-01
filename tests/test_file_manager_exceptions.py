@@ -112,7 +112,8 @@ def test_list_user_files_no_user_and_exception(
         encryption_manager=lambda p: RaisingEncryption(),
         audit_logger=AuditLogger(Path(temp_log_file), db),
     )
-    assert fam.list_user_files("nouser") == []
+    files, total = fam.list_user_files("nouser")
+    assert files == [] and total == 0
 
     class BadDB:
         def get_session(self):
@@ -123,7 +124,8 @@ def test_list_user_files_no_user_and_exception(
         encryption_manager=lambda p: RaisingEncryption(),
         audit_logger=AuditLogger(Path(temp_log_file)),
     )
-    assert fam_bad.list_user_files("any") == []
+    files, total = fam_bad.list_user_files("any")
+    assert files == [] and total == 0
 
 
 def test_delete_user_not_found_and_exception(

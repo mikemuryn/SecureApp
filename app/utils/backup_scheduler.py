@@ -5,12 +5,9 @@ Handles scheduled backups based on configuration
 
 import logging
 import threading
-import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
-
-import schedule
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +37,8 @@ class BackupScheduler:
         self.enabled = enabled
         self.running = False
         self.scheduler_thread: Optional[threading.Thread] = None
+        self._stop_event = threading.Event()
+        self._next_run: Optional[datetime] = None
 
         # Create backup directory if it doesn't exist
         self.backup_directory.mkdir(parents=True, exist_ok=True)
@@ -69,10 +68,24 @@ class BackupScheduler:
             return False, error_msg
 
     def _run_scheduler(self) -> None:
-        """Run the scheduler loop"""
-        while self.running:
-            schedule.run_pending()
-            time.sleep(60)  # Check every minute
+        """Run the scheduler loop waiting for the next backup interval."""
+        while not self._stop_event.is_set():
+            if self._next_run is None:
+                self._next_run = datetime.utcnow() + timedelta(
+                    hours=self.interval_hours
+                )
+
+            now = datetime.utcnow()
+            wait_seconds = max(0.0, (self._next_run - now).total_seconds())
+            if self._stop_event.wait(timeout=wait_seconds):
+                break
+
+            if self._stop_event.is_set():
+                break
+
+            # Time reached; perform backup and schedule next run
+            self.create_backup()
+            self._next_run = datetime.utcnow() + timedelta(hours=self.interval_hours)
 
     def start(self) -> None:
         """Start the backup scheduler"""
@@ -84,14 +97,12 @@ class BackupScheduler:
             logger.warning("Backup scheduler is already running")
             return
 
-        # Schedule backup
-        schedule.every(self.interval_hours).hours.do(self.create_backup)
-
-        # Schedule first backup immediately
+        # Perform immediate backup
         self.create_backup()
 
-        # Start scheduler thread
         self.running = True
+        self._stop_event.clear()
+        self._next_run = datetime.utcnow() + timedelta(hours=self.interval_hours)
         self.scheduler_thread = threading.Thread(
             target=self._run_scheduler, daemon=True
         )
@@ -107,15 +118,18 @@ class BackupScheduler:
             return
 
         self.running = False
-        schedule.clear()
+        self._stop_event.set()
+        self._next_run = None
         logger.info("Backup scheduler stopped")
+
+        if self.scheduler_thread and self.scheduler_thread.is_alive():
+            self.scheduler_thread.join(timeout=2)
 
     def update_interval(self, hours: int) -> None:
         """Update backup interval"""
         self.interval_hours = hours
         if self.running:
-            schedule.clear()
-            schedule.every(self.interval_hours).hours.do(self.create_backup)
+            self._next_run = datetime.utcnow() + timedelta(hours=self.interval_hours)
             logger.info(f"Backup interval updated to {hours} hours")
 
     def is_running(self) -> bool:
@@ -127,7 +141,4 @@ class BackupScheduler:
         if not self.running:
             return None
 
-        jobs = schedule.get_jobs()
-        if jobs:
-            return jobs[0].next_run
-        return None
+        return self._next_run

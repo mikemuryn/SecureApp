@@ -50,7 +50,8 @@ def test_permission_denied_for_non_owner(tmp_path, temp_db_file, temp_log_file):
         ok, msg = fam.upload_file(src, "owner", "StrongPassword123!")
         assert ok, msg
 
-        file_id = fam.list_user_files("owner")[0]["id"]
+        files, _ = fam.list_user_files("owner")
+        file_id = files[0]["id"]
         ok, temp_out, message = fam.download_file(
             file_id, "other", "StrongPassword123!"
         )

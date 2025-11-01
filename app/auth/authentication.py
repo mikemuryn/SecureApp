@@ -17,17 +17,20 @@ class AuthenticationManager:
 
     def __init__(self, db_manager) -> None:
         self.db_manager = db_manager
-        self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        self.pwd_context = CryptContext(
+            schemes=["pbkdf2_sha256"],
+            deprecated="auto",
+        )
         self.max_login_attempts = 5
         self.lockout_duration = timedelta(minutes=15)
 
     def hash_password(self, password: str) -> str:
-        """Hash password using bcrypt"""
+        """Hash password using the configured password hashing scheme."""
         result: str = self.pwd_context.hash(password)
         return result
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify password against hash"""
+        """Verify password against stored hash."""
         result: bool = self.pwd_context.verify(plain_password, hashed_password)
         return result
 
