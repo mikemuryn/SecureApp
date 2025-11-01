@@ -24,15 +24,36 @@ if [ -z "$STAGED" ] && [ -z "$UNTRACKED" ] && [ -z "$MODIFIED" ]; then
     exit 0
 fi
 
-# Generate commit message
+# Generate commit message (try multiple methods in order)
 COMMIT_MSG=""
 
-# Try generate_commit_msg.sh first
-if [ -f "$PROJECT_ROOT/generate_commit_msg.sh" ] && [ -x "$PROJECT_ROOT/generate_commit_msg.sh" ]; then
-    COMMIT_MSG=$(timeout 5 bash "$PROJECT_ROOT/generate_commit_msg.sh" 2>/dev/null || true)
+# 1. Try smart diff analyzer (analyzes actual code changes)
+if [ -f "$PROJECT_ROOT/generate_commit_msg_smart.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_smart.py" ]; then
+    COMMIT_MSG=$(timeout 10 python3 "$PROJECT_ROOT/generate_commit_msg_smart.py" 2>/dev/null || true)
 fi
 
-# If generate_commit_msg.sh didn't work, try show_changes.sh
+# 2. Try LLM-enhanced generator (if API keys available)
+if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    if [ -f "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ]; then
+        COMMIT_MSG=$(timeout 10 python3 "$PROJECT_ROOT/generate_commit_msg_with_llm.py" 2>/dev/null || true)
+    fi
+fi
+
+# 3. Try enhanced heuristics script
+if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    if [ -f "$PROJECT_ROOT/generate_commit_msg_enhanced.sh" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_enhanced.sh" ]; then
+        COMMIT_MSG=$(timeout 5 bash "$PROJECT_ROOT/generate_commit_msg_enhanced.sh" 2>/dev/null || true)
+    fi
+fi
+
+# 4. Try original generate_commit_msg.sh
+if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    if [ -f "$PROJECT_ROOT/generate_commit_msg.sh" ] && [ -x "$PROJECT_ROOT/generate_commit_msg.sh" ]; then
+        COMMIT_MSG=$(timeout 5 bash "$PROJECT_ROOT/generate_commit_msg.sh" 2>/dev/null || true)
+    fi
+fi
+
+# 5. Try show_changes.sh as last resort
 if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
     if [ -f "$PROJECT_ROOT/show_changes.sh" ] && [ -x "$PROJECT_ROOT/show_changes.sh" ]; then
         # Run show_changes.sh with timeout and redirect stdin to skip interactive prompts

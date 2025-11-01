@@ -169,21 +169,41 @@ if [ -n "$MODIFIED" ] || [ -n "$UNTRACKED" ]; then
         COMMIT_TYPE="chore"
     fi
 
-    # Build subject line
+    # Build subject line with better context
     if [ "$TOTAL_COUNT" -eq 1 ]; then
         if [ "$UNTRACKED_COUNT" -eq 1 ]; then
             FILE_NAME=$(basename "$(echo "$UNTRACKED" | head -1)")
-            COMMIT_SUBJECT="add $FILE_NAME"
+            # Remove extension for cleaner message
+            FILE_BASE=$(echo "$FILE_NAME" | sed 's/\.[^.]*$//')
+            COMMIT_SUBJECT="add $FILE_BASE"
         else
             FILE_NAME=$(basename "$(echo "$MODIFIED" | head -1)")
-            COMMIT_SUBJECT="update $FILE_NAME"
+            FILE_BASE=$(echo "$FILE_NAME" | sed 's/\.[^.]*$//')
+            COMMIT_SUBJECT="update $FILE_BASE"
         fi
     elif [ "$PYTHON_FILES" -gt 0 ] && [ "$PYTHON_FILES" -eq "$TOTAL_COUNT" ]; then
-        COMMIT_SUBJECT="update Python code"
+        # More specific if all Python files
+        if echo "$ALL_FILES" | grep -q "^app/"; then
+            COMMIT_SUBJECT="update application code"
+        elif echo "$ALL_FILES" | grep -q "^tests/"; then
+            COMMIT_SUBJECT="add test coverage"
+        else
+            COMMIT_SUBJECT="update Python code"
+        fi
     elif [ "$SCRIPT_FILES" -gt 0 ]; then
-        COMMIT_SUBJECT="add utility scripts"
+        if [ "$SCRIPT_FILES" -eq 1 ]; then
+            SCRIPT_NAME=$(basename "$(echo "$ALL_FILES" | grep -E "\.(sh|ps1|py)$" | head -1)" | sed 's/\.[^.]*$//')
+            COMMIT_SUBJECT="add $SCRIPT_NAME script"
+        else
+            COMMIT_SUBJECT="add utility scripts"
+        fi
     elif [ "$DOC_FILES" -gt 0 ] && [ "$DOC_FILES" -eq "$TOTAL_COUNT" ]; then
-        COMMIT_SUBJECT="update documentation"
+        if [ "$DOC_FILES" -eq 1 ]; then
+            DOC_NAME=$(basename "$(echo "$ALL_FILES" | grep -E "\.md$" | head -1)" .md)
+            COMMIT_SUBJECT="add $DOC_NAME documentation"
+        else
+            COMMIT_SUBJECT="update documentation"
+        fi
     elif [ "$CONFIG_FILES" -gt 0 ]; then
         COMMIT_SUBJECT="update configuration"
     else

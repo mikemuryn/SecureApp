@@ -357,7 +357,13 @@ class FileAccessManager:
                 return FileListResult(files, total_count)
 
             finally:
-                self.db_manager.close_session(session)
+                if session is not None:
+                    try:
+                        self.db_manager.close_session(session)
+                    except Exception:  # nosec B110
+                        # Suppress exceptions during cleanup to avoid masking
+                        # original error
+                        pass
 
         except Exception as e:
             logger.error("Failed to list files for %s: %s", username, e)
