@@ -9,6 +9,15 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# Try to load .env file if python-dotenv is available
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
+
 
 def get_git_changes() -> Optional[Dict]:
     """Get git diff and status information."""

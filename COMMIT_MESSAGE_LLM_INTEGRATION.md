@@ -12,23 +12,52 @@ Uses AI to analyze git diffs and generate contextual commit messages.
 
 **Requirements:**
 
-- API key for one of: Cursor, Anthropic Claude, or OpenAI
+- API key for OpenAI or Anthropic Claude (if using external LLM APIs)
+- **Note:** Cursor Agent in the IDE works without an API key - you're already authenticated when logged into Cursor
 - Python 3.8+
 - Optional: `openai` or `anthropic` packages
 
 **Setup:**
 
-```bash
-# Set API key (choose one)
-export OPENAI_API_KEY="your-openai-api-key-here"
-# OR
-export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
-# OR
-export CURSOR_API_KEY="your-cursor-api-key-here"
+1. **Create `.env` file (recommended - gitignored):**
 
-# Install dependencies (optional, only if using OpenAI/Anthropic)
-pip install openai anthropic
-```
+    ```bash
+    # Copy the example template
+    cp .env.example .env
+
+    # Edit .env and add your keys
+    nano .env
+    ```
+
+    Add your keys to `.env`:
+
+    ```bash
+    OPENAI_API_KEY=your-openai-api-key-here
+    ANTHROPIC_API_KEY=your-anthropic-api-key-here
+    # CURSOR_API_KEY is optional - only if using Cursor's API programmatically
+    # Not needed for Cursor Agent in IDE (already logged in)
+    CURSOR_API_KEY=your-cursor-api-key-here
+    ```
+
+    **The `.env` file is automatically loaded by `python-dotenv` (already in requirements.txt).**
+
+2. **Or set environment variables manually:**
+
+    ```bash
+    export OPENAI_API_KEY="your-openai-api-key-here"
+    # OR
+    export ANTHROPIC_API_KEY="your-anthropic-api-key-here"
+    # OR
+    export CURSOR_API_KEY="your-cursor-api-key-here"
+    ```
+
+3. **Install dependencies (optional, only if using OpenAI/Anthropic):**
+
+    ```bash
+    pip install openai anthropic
+    ```
+
+**Security Note:** Never commit API keys to git. See `SECURE_API_KEYS_GUIDE.md` for detailed instructions.
 
 **Usage:**
 The `git-commit-review` script automatically tries LLM generation first if API keys are available.
@@ -79,20 +108,24 @@ Simple file counting and categorization.
 - API keys are set
 - Dependencies are installed
 
-### Option B: Cursor Agent Integration
+### Option B: Cursor Agent Integration (No API Key Needed) ⭐
 
-Since you're already using Cursor, you could:
+Since you're already using Cursor, this is the easiest option:
 
-1. **Use Cursor's built-in capabilities:**
-    - Ask Cursor in chat: "Generate a commit message for my changes"
-    - Cursor can see the git diff and generate a message
+1. **Use Cursor's built-in chat (recommended):**
+    - You're already logged in - no API key needed
+    - Ask Cursor in chat: "Generate a commit message for my staged changes"
+    - Cursor Agent can see the git diff and generate a message
+    - Works immediately, no setup required
 
-2. **Create a Cursor command:**
-    - Add a custom command that runs git diff and asks Cursor API
-
-3. **Use Cursor's context:**
-    - The agent already has project context
+2. **Use Cursor's context:**
+    - The agent already has full project context
     - Can generate better messages than generic LLM
+    - Understands your codebase and conventions
+
+3. **Programmatic API (future - if Cursor exposes one):**
+    - Would require `CURSOR_API_KEY` if Cursor adds API access
+    - Currently not available - use chat interface instead
 
 ### Option C: Enhanced Heuristics Only (No API)
 
@@ -133,27 +166,54 @@ Just use `generate_commit_msg_enhanced.sh` which improves on the basic pattern m
 ## Quick Setup
 
 ```bash
-# Make enhanced script executable
+# 1. Make enhanced script executable
 chmod +x generate_commit_msg_enhanced.sh generate_commit_msg_with_llm.py
 
-# Optionally set API keys
+# 2. Set up API keys (optional, for LLM generation)
+# Method A: Use .env file (recommended)
+cp .env.example .env
+# Edit .env and add your keys
+
+# Method B: Export manually
 export OPENAI_API_KEY="your-key"  # For OpenAI
 # OR
 export ANTHROPIC_API_KEY="your-key"  # For Claude
 
 # The git-commit-review script will automatically try:
-# 1. LLM (if API keys available)
-# 2. Enhanced heuristics
-# 3. Original methods
-# 4. Simple fallback
+# 1. Smart diff analyzer (no API needed)
+# 2. LLM (if API keys available)
+# 3. Enhanced heuristics
+# 4. Original methods
+# 5. Simple fallback
 ```
 
-## Using Cursor Directly
+**For detailed API key setup, see `SECURE_API_KEYS_GUIDE.md`.**
 
-Since you're already in Cursor, the simplest approach:
+## Using Cursor Agent Directly (Recommended - No API Key Needed)
 
-1. Stage your changes: `git add .`
-2. In Cursor chat, ask: "Generate a conventional commit message for my staged changes"
-3. Copy the message and use: `git commit -m "..."`
+Since you're already logged into Cursor, this is the simplest approach:
 
-Or create a Cursor command/shortcut for this workflow.
+1. **Stage your changes:**
+
+    ```bash
+    git add .
+    ```
+
+2. **Ask Cursor Agent in chat:**
+    - Open Cursor chat (Cmd/Ctrl + L)
+    - Ask: "Generate a conventional commit message for my staged git changes"
+    - Cursor will analyze your changes and provide a message
+
+3. **Copy and commit:**
+    ```bash
+    git commit -m "message from cursor"
+    ```
+
+**Why this works better:**
+
+- No API key needed (you're already authenticated)
+- Cursor Agent has full project context
+- Understands your codebase conventions
+- Generates contextual, high-quality messages
+
+**Pro tip:** You can also just ask me (Cursor Agent) directly: "Generate a commit message for my changes" and I'll do it right now!

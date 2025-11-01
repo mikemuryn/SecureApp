@@ -24,18 +24,42 @@ if [ -z "$STAGED" ] && [ -z "$UNTRACKED" ] && [ -z "$MODIFIED" ]; then
     exit 0
 fi
 
-# Generate commit message (try multiple methods in order)
+# Generate commit message (try multiple methods in order, prioritizing LLM for quality)
 COMMIT_MSG=""
 
-# 1. Try smart diff analyzer (analyzes actual code changes)
-if [ -f "$PROJECT_ROOT/generate_commit_msg_smart.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_smart.py" ]; then
-    COMMIT_MSG=$(timeout 10 python3 "$PROJECT_ROOT/generate_commit_msg_smart.py" 2>/dev/null || true)
+# Check if API keys are available (either in .env or exported)
+HAS_API_KEY=false
+if [ -f "$PROJECT_ROOT/.env" ] && grep -qE "OPENAI_API_KEY=|ANTHROPIC_API_KEY=" "$PROJECT_ROOT/.env" 2>/dev/null; then
+    HAS_API_KEY=true
+fi
+if [ -n "${OPENAI_API_KEY:-}" ] || [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+    HAS_API_KEY=true
 fi
 
-# 2. Try LLM-enhanced generator (if API keys available)
+# Warn user if no API key found (better quality with LLM)
+if [ "$HAS_API_KEY" = false ]; then
+    echo ""
+    echo "⚠️  WARNING: No OpenAI or Anthropic API key found!" >&2
+    echo "   Commit messages will use heuristics (lower quality)" >&2
+    echo "   To enable LLM-generated messages, add your API key:" >&2
+    echo "   1. Create/edit .env file: echo 'OPENAI_API_KEY=sk-...' >> .env" >&2
+    echo "   2. Or export: export OPENAI_API_KEY=sk-..." >&2
+    echo "   See SECURE_API_KEYS_GUIDE.md for details" >&2
+    echo ""
+fi
+
+# 1. Try LLM-enhanced generator FIRST (if API keys available) - Best quality for automation
+# This prioritizes OpenAI/Anthropic APIs since user wants automated high-quality commits
+if [ -f "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ]; then
+    if [ "$HAS_API_KEY" = true ]; then
+        COMMIT_MSG=$(timeout 15 python3 "$PROJECT_ROOT/generate_commit_msg_with_llm.py" 2>/dev/null || true)
+    fi
+fi
+
+# 2. Try smart diff analyzer (analyzes actual code changes) - Good fallback, no API needed
 if [ -z "$COMMIT_MSG" ] || [ -z "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
-    if [ -f "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_with_llm.py" ]; then
-        COMMIT_MSG=$(timeout 10 python3 "$PROJECT_ROOT/generate_commit_msg_with_llm.py" 2>/dev/null || true)
+    if [ -f "$PROJECT_ROOT/generate_commit_msg_smart.py" ] && [ -x "$PROJECT_ROOT/generate_commit_msg_smart.py" ]; then
+        COMMIT_MSG=$(timeout 10 python3 "$PROJECT_ROOT/generate_commit_msg_smart.py" 2>/dev/null || true)
     fi
 fi
 
@@ -134,6 +158,19 @@ echo "$COMMIT_MSG"
 echo ""
 echo "=========================================="
 echo ""
+
+# Show which method was used (helpful for debugging)
+if [ -n "$COMMIT_MSG" ] && [ -n "$(echo "$COMMIT_MSG" | grep -v '^[[:space:]]*$' 2>/dev/null || true)" ]; then
+    # Check which method likely generated the message
+    if [ -f "$PROJECT_ROOT/.env" ] && grep -qE "OPENAI_API_KEY=|ANTHROPIC_API_KEY=" "$PROJECT_ROOT/.env" 2>/dev/null; then
+        echo "✓ Generated using LLM (API key found in .env)"
+    elif [ -n "${OPENAI_API_KEY:-}" ] || [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+        echo "✓ Generated using LLM (API key from environment)"
+    else
+        echo "✓ Generated using heuristics (no API key found - add one to .env for better quality)"
+    fi
+    echo ""
+fi
 
 # Show what will be committed
 echo "Files to commit:"
