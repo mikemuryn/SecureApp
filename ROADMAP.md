@@ -3,13 +3,13 @@
 **Last Updated:** October 2025
 **Status:** Active Development
 
-This roadmap outlines the strategic development plan to make SecureApp production-ready, user-friendly, and valuable for managing confidential files and trading algorithms.
+This roadmap outlines the strategic development plan to make SecureApp production-ready, user-friendly, and valuable for managing intellectual property and confidential files.
 
 ---
 
 ## 🎯 Vision Statement
 
-Transform SecureApp from a functional prototype into a **professional, production-ready application** that provides exceptional security, usability, and value for managing sensitive trading algorithms and confidential files.
+Transform SecureApp from a functional prototype into a **professional, production-ready application** that provides exceptional security, usability, and value for managing intellectual property and confidential files.
 
 ---
 
@@ -60,6 +60,10 @@ _Focus: Reliability, performance, and enterprise features_
 ### **Phase 5: Integration & Ecosystem** (Weeks 17-20)
 
 _Focus: APIs, CLI, integrations, and extensibility_
+
+### **Phase 6: AI/LLM Integration & Personalization** (Weeks 21-24)
+
+_Focus: Embed company documents for LLM use, per-user custom instructions, and organizational standards detection_
 
 ---
 
@@ -607,6 +611,220 @@ _Focus: APIs, CLI, integrations, and extensibility_
     - Theme builder
     - Theme sharing
     - Community themes
+
+---
+
+## 🤖 Phase 6: AI/LLM Integration & Personalization (Weeks 21-24)
+
+**Goal:** Enable embedding company documents for LLM/agent use, per-user voice customization, and organizational standards detection
+
+### 6.1 Document Embedding for LLM/Agent Use (Week 21)
+
+#### High Priority
+
+- [ ] **Company Document Embedding**
+    - Upload internal company documents as "project files"
+    - Mark documents as "LLM-accessible" (separate from regular encrypted storage)
+    - Store documents with metadata for LLM context retrieval
+    - Support multiple document formats (PDF, DOCX, TXT, MD)
+    - Document indexing and chunking for vector search (future: RAG support)
+    - Password-protected access to embedded documents
+    - User-level permissions for which documents are accessible to their agent
+    - Document version tracking for LLM context
+
+- [ ] **Agent Context Integration**
+    - API endpoint to retrieve embedded documents as context
+    - Integration with Cursor IDE agent system
+    - Integration with external LLM APIs (OpenAI, Anthropic, etc.)
+    - Context injection based on user permissions
+    - Token management for LLM context limits
+    - Document relevance scoring for context selection
+
+- [ ] **Project Files Management**
+    - UI for managing "project files" (embedded documents)
+    - Separate view from regular encrypted files
+    - Bulk upload of company documentation
+    - Document tagging for organization
+    - Search/filter embedded documents
+    - Document preview for LLM context
+
+### 6.2 Per-User Custom Instructions (Week 22)
+
+#### High Priority
+
+- [ ] **User Custom Instructions Storage**
+    - Database model for per-user custom instructions
+    - Encrypted storage for sensitive instructions
+    - Instructions organized by category (voice, preferences, constraints)
+    - Version history for instructions
+    - Import/export instructions
+
+- [ ] **Voice & Personality Customization**
+    - UI for users to define their "voice" and communication style
+    - Per-user instructions applied to LLM/agent interactions
+    - Support for multiple instruction sets (work vs. personal)
+    - Instruction templates for common use cases
+    - Preview/test instructions before saving
+    - Merge organizational standards with personal instructions
+
+- [ ] **Instruction Management**
+    - Admin override for user instructions (compliance/security)
+    - Instruction inheritance (organizational → user → session)
+    - Instruction conflict resolution
+    - Audit logging for instruction changes
+    - Permission levels for instruction editing
+
+- [ ] **Modular LLM/Agent Selection System**
+    - Plugin-based architecture for LLM/agent providers
+    - User-configurable agent selection per session or globally
+    - Support for multiple LLM/agent providers simultaneously
+    - Agent switching without losing context
+    - Agent performance metrics and logging
+
+- [ ] **Agent Provider Integrations**
+    - **Cursor AI / Cursor Agent Integration**
+        - Native integration with Cursor IDE agent system
+        - Access to Cursor's underlying AI models
+        - Support for Cursor's agent workflow (primary + verification)
+        - Dynamic `.cursorrules` generation from user/org settings
+    - **OpenAI ChatGPT / Codex Integration**
+        - ChatGPT API integration (GPT-4, GPT-3.5, etc.)
+        - Codex API integration for code-related tasks
+        - Support for loading customized GPTs via API
+        - Custom GPT configuration per user or organization
+        - API key management and rotation
+    - **Google Gemini / Gemini Agent Integration**
+        - Gemini API integration (Gemini Pro, Gemini Ultra)
+        - Gemini Agent support for multi-modal interactions
+        - Google Cloud API key management
+        - Model selection (Gemini 1.0, 1.5, etc.)
+    - **xAI Grok Models/Agents Integration**
+        - Grok API integration
+        - Grok Agent support for real-time interactions
+        - xAI API key management
+        - Model selection and configuration
+    - **IBM Granite Models Integration**
+        - IBM Granite code models integration
+        - IBM Watson API support
+        - IBM Cloud credentials management
+        - Model selection (Granite 8B, 34B, etc.)
+    - **Additional Providers**
+        - Extensible plugin system for future providers
+        - Standardized API interface for new integrations
+        - Provider-specific configuration templates
+
+- [ ] **Agent Integration Features**
+    - Inject user custom instructions into agent context
+    - Apply instructions to all agent interactions per user
+    - Support for CLI-based agent interactions
+    - Support for REST API agent integrations
+    - Instruction priority system (user > org > default)
+    - Context management across different agents
+    - Unified interface for multi-agent interactions
+
+### 6.3 Organizational Standards Detection (Week 23)
+
+#### High Priority
+
+- [ ] **Standards Document Detection**
+    - Automatic detection of organizational communication standards documents
+    - Scan uploaded documents for style guides, brand guidelines, communication policies
+    - Parse common formats (PDF, DOCX, Markdown)
+    - Extract key patterns (tone, format, terminology, voice)
+    - Identify document type (style guide, brand guide, policy doc)
+
+- [ ] **Standards Extraction & Analysis**
+    - Extract communication standards from documents
+    - Identify tone preferences (formal, casual, technical, friendly)
+    - Extract formatting preferences (bullet points, headings, structure)
+    - Identify terminology and vocabulary standards
+    - Extract voice characteristics (active/passive, sentence length, clarity)
+    - Detect forbidden words/phrases (like current `.cursorrules` system)
+
+- [ ] **Standards Application**
+    - Auto-apply organizational standards to all users when detected
+    - Merge organizational standards with user custom instructions
+    - Priority system: user custom > org standards > defaults
+    - Standards enforcement levels (advisory vs. required)
+    - Standards override mechanism for admins
+    - Standards versioning and updates
+
+- [ ] **Standards Management UI**
+    - Admin UI to manage organizational standards
+    - View detected standards
+    - Edit/enhance extracted standards
+    - Apply standards to user groups or all users
+    - Standards compliance dashboard
+    - User visibility of applied standards
+
+#### Medium Priority
+
+- [ ] **AI-Powered Standards Detection**
+    - Use LLM to analyze documents and extract communication standards
+    - Pattern recognition across multiple documents
+    - Standards confidence scoring
+    - Automatic updates when new standards documents are uploaded
+    - Multi-document standards aggregation
+
+### 6.4 LLM/Agent Deployment Integration (Week 24)
+
+#### High Priority
+
+- [ ] **Cursor IDE Integration**
+    - Inject embedded documents into Cursor agent context
+    - Apply per-user custom instructions to Cursor agent
+    - Dynamic `.cursorrules` generation based on user + org standards
+    - Project file access for Cursor agent based on user permissions
+    - Seamless integration with existing Cursor workflow
+
+- [ ] **External LLM API Integration**
+    - OpenAI API integration with custom instructions
+    - Anthropic Claude API integration
+    - Support for multiple LLM providers
+    - Document embedding via API
+    - Context management and token optimization
+    - Per-user API key management (optional)
+
+- [ ] **CLI Agent Support**
+    - CLI commands for agent interactions with context
+    - Command-line access to embedded documents
+    - CLI support for custom instructions
+    - Script-friendly agent interactions
+    - Batch processing with agent context
+
+- [ ] **REST API for Agents**
+    - REST endpoints for agent context retrieval
+    - Document embedding via API
+    - Custom instructions management via API
+    - Agent interaction endpoints
+    - API authentication and rate limiting
+    - Webhook support for agent events
+
+#### Medium Priority
+
+- [ ] **Agent Analytics**
+    - Track which documents are most used in agent context
+    - Monitor custom instruction effectiveness
+    - User satisfaction with agent responses
+    - Standards compliance metrics
+    - Agent usage patterns
+
+- [ ] **Advanced RAG Support**
+    - Vector database integration for document search
+    - Semantic search for embedded documents
+    - Retrieval-augmented generation (RAG) pipeline
+    - Document chunking and embedding storage
+    - Relevance ranking for context selection
+
+---
+
+## 🎯 Updated Quick Wins (Include Phase 6)
+
+Add to existing Quick Wins:
+
+8. **Per-User Custom Instructions UI** - 4-6 hours
+9. **Basic Document Embedding** - 6-8 hours
+10. **Standards Detection from Existing Files** - 4-6 hours
 
 ---
 

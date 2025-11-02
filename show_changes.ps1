@@ -1,5 +1,6 @@
 # Show git changes summary for the current project
 # Automatically detects which project (SecureApp or QuantFramework) and shows changes
+# Works with symlinked configuration files - git tracks changes normally
 
 $ProjectDir = Split-Path -Leaf (Get-Location)
 $ProjectRoot = Get-Location
@@ -16,6 +17,23 @@ try {
     exit 1
 }
 
+# Detect if config files are symlinks (for informational purposes)
+$ConfigSymlinkInfo = @()
+if (Test-Path ".cursorrules") {
+    $item = Get-Item ".cursorrules"
+    if ($item.LinkType -eq "SymbolicLink") {
+        $target = $item.Target
+        $ConfigSymlinkInfo += "  • .cursorrules → $target"
+    }
+}
+if (Test-Path ".vscode/settings.json") {
+    $item = Get-Item ".vscode/settings.json"
+    if ($item.LinkType -eq "SymbolicLink") {
+        $target = $item.Target
+        $ConfigSymlinkInfo += "  • .vscode/settings.json → $target"
+    }
+}
+
 $ProjectName = $ProjectDir
 
 Write-Host "==========================================" -ForegroundColor Cyan
@@ -23,6 +41,13 @@ Write-Host "Changes Summary: $ProjectName" -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Project Directory: $ProjectRoot" -ForegroundColor Gray
+if ($ConfigSymlinkInfo.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Shared configuration files (symlinks):" -ForegroundColor DarkGray
+    foreach ($info in $ConfigSymlinkInfo) {
+        Write-Host $info -ForegroundColor DarkGray
+    }
+}
 Write-Host ""
 
 # Check for changes
@@ -132,9 +157,23 @@ if ($AllFiles.Count -gt 0) {
     $ChangeTypes = @()
     $CommitBodyParts = @()
 
-    if ($AllFiles | Where-Object { $_ -match '\.cursorrules' }) {
+    # Detect config file changes (works with symlinks)
+    if ($AllFiles | Where-Object { $_ -match '\.cursorrules|\.editorconfig|\.vscode/settings\.json' }) {
         $ChangeTypes += "config"
-        $CommitBodyParts += "- Update Cursor AI agent configuration"
+        $ConfigChanged = @()
+        if ($AllFiles | Where-Object { $_ -match '\.cursorrules' }) {
+            $ConfigChanged += "Cursor rules"
+        }
+        if ($AllFiles | Where-Object { $_ -match '\.editorconfig' }) {
+            $ConfigChanged += "Editor config"
+        }
+        if ($AllFiles | Where-Object { $_ -match '\.vscode/settings\.json' }) {
+            $ConfigChanged += "VS Code settings"
+        }
+        if ($ConfigChanged.Count -gt 0) {
+            $CommitBodyParts += "- Update shared configuration: $($ConfigChanged -join ', ')"
+            $CommitBodyParts += "  (Note: Changes apply to all projects using master config)"
+        }
     }
     if ($AllFiles | Where-Object { $_ -match '(verify_|guide)' }) {
         $ChangeTypes += "docs"
@@ -209,12 +248,17 @@ if ($AllFiles.Count -gt 0) {
     Write-Host ""
 }
 
-# Option to show detailed diff
-if (-not [string]::IsNullOrEmpty($Modified)) {
+# Option to show detailed diff (skip if non-interactive)
+$IsInteractive = [Environment]::UserInteractive -and $Host.UI.RawUI.KeyAvailable
+if (-not [string]::IsNullOrEmpty($Modified) -and $IsInteractive) {
     $ShowDiff = Read-Host "Show detailed diff? (y/n)"
     if ($ShowDiff -eq "y" -or $ShowDiff -eq "Y") {
         git diff
     }
+} elseif (-not [string]::IsNullOrEmpty($Modified) -and -not $IsInteractive) {
+    # Non-interactive mode - provide hint
+    Write-Host ""
+    Write-Host "Run 'git diff' to see detailed changes" -ForegroundColor DarkGray
 }
 
 Write-Host ""
