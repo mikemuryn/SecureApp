@@ -631,12 +631,21 @@ _Focus: Embed company documents for LLM use, per-user custom instructions, and o
     - Password-protected access to embedded documents
     - User-level permissions for which documents are accessible to their agent
     - Document version tracking for LLM context
+    - **Admin approval required for shared project files**
+        - All project files shared with other users require admin permission/confirmation
+        - Admin receives notification/approval request when user shares project files
+        - Approval workflow with audit logging
+        - Auto-approved if admin account adds files (immediate approval)
+        - Pending approval queue visible to admins
+        - Users notified when shared files are approved or rejected
 
 - [ ] **Agent Context Integration**
     - API endpoint to retrieve embedded documents as context
     - Integration with Cursor IDE agent system
     - Integration with external LLM APIs (OpenAI, Anthropic, etc.)
     - Context injection based on user permissions
+    - Only approved shared project files accessible to agents
+    - Admin-approval status checked before context injection
     - Token management for LLM context limits
     - Document relevance scoring for context selection
 
@@ -647,6 +656,12 @@ _Focus: Embed company documents for LLM use, per-user custom instructions, and o
     - Document tagging for organization
     - Search/filter embedded documents
     - Document preview for LLM context
+    - Admin approval workflow UI
+        - Pending approval queue for admins
+        - File details and requester information
+        - Approve/reject actions with comments
+        - Notification system for approval status
+        - History of approval decisions
 
 ### 6.2 Per-User Custom Instructions (Week 22)
 
@@ -693,6 +708,14 @@ _Focus: Embed company documents for LLM use, per-user custom instructions, and o
         - Support for loading customized GPTs via API
         - Custom GPT configuration per user or organization
         - API key management and rotation
+    - **Anthropic Claude Integration**
+        - Claude API integration (Claude 3.5 Sonnet, Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku)
+        - Claude Sonnet model support (balanced performance and speed)
+        - Claude Haiku model support (fastest, cost-effective option)
+        - Model selection per task or user preference
+        - Anthropic API key management
+        - Support for Anthropic's system prompts and custom instructions
+        - Long context window support (up to 200K tokens)
     - **Google Gemini / Gemini Agent Integration**
         - Gemini API integration (Gemini Pro, Gemini Ultra)
         - Gemini Agent support for multi-modal interactions
@@ -779,7 +802,7 @@ _Focus: Embed company documents for LLM use, per-user custom instructions, and o
 
 - [ ] **External LLM API Integration**
     - OpenAI API integration with custom instructions
-    - Anthropic Claude API integration
+    - Anthropic Claude API integration (Claude Sonnet, Claude Haiku, Claude Opus)
     - Support for multiple LLM providers
     - Document embedding via API
     - Context management and token optimization

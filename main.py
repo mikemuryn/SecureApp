@@ -207,10 +207,38 @@ class SecureApp:
         )
         forgot_password_button.pack(pady=5)
 
-        # Bind Enter key to login
-        self.root.bind("<Return>", lambda e: self.handle_login())
+        # Keyboard shortcuts hint
+        shortcuts_label = ctk.CTkLabel(
+            login_frame,
+            text="Keyboard Shortcuts: Enter = Login | Tab = Next Field | Esc = Clear",
+            font=ctk.CTkFont(size=10),
+            text_color="gray",
+        )
+        shortcuts_label.pack(pady=(20, 10))
+
+        # Setup keyboard shortcuts for login page
+        self._setup_login_keyboard_shortcuts()
 
         # Focus on username entry
+        self.username_entry.focus()
+
+    def _setup_login_keyboard_shortcuts(self) -> None:
+        """Setup keyboard shortcuts for login page"""
+        # Enter key to login (bind to both username and password fields)
+        self.root.bind("<Return>", lambda e: self.handle_login())
+        self.username_entry.bind("<Return>", lambda e: self.handle_login())
+        self.password_entry.bind("<Return>", lambda e: self.handle_login())
+
+        # Escape key to clear fields
+        self.root.bind("<Escape>", lambda e: self._clear_login_fields())
+
+        # Alt+R for password recovery
+        self.root.bind("<Alt-r>", lambda e: self.show_password_recovery())
+
+    def _clear_login_fields(self) -> None:
+        """Clear login form fields"""
+        self.username_entry.delete(0, tk.END)
+        self.password_entry.delete(0, tk.END)
         self.username_entry.focus()
 
     def toggle_password_visibility(self):

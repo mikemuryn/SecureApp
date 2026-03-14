@@ -1,6 +1,6 @@
 # SecureApp
 
-A standalone desktop application for secure management of confidential trading algorithms and project files with robust authentication and encryption.
+A standalone desktop application for secure management of intellectual property and confidential files with robust authentication and encryption.
 
 [![AI Enforcement](https://img.shields.io/badge/Cursor-Enforced-blue?logo=github)](./.cursor/config.json)
 [![Engineering Standards](https://img.shields.io/badge/Standards-Revision%203.0-brightgreen)](./ENGINEERING_STANDARDS_MASTER.md)
