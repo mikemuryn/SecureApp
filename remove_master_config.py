@@ -12,7 +12,7 @@ PROJECTS = ["SecureApp", "QuantFramework"]
 PROJECT_CONFIGS = {
     "SecureApp": {
         "package_dir": "app",
-        "standards_ref": "`ENGINEERING_STANDARDS_MASTER.md`",
+        "standards_ref": "`standards/full/engineering.md`",
         "project_specific": "",
     },
     "QuantFramework": {
@@ -37,7 +37,7 @@ CURSORRULES_CONTENT = """# Cursor AI Agent Rules for {project_name}
 ## Engineering Standards
 
 **All coding standards, guidelines, and technical requirements are defined in:**
-- `ENGINEERING_STANDARDS_MASTER.md` (project root{project_specific})
+- `standards/full/engineering.md` (standards submodule)
 
 This includes:
 - Code style (PEP 8, black, type hints, formatting)

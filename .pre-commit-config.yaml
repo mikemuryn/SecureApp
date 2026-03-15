@@ -51,6 +51,20 @@ repos:
         files: ^app/
         pass_filenames: false
         always_run: true
+  - repo: local
+    hooks:
+      - id: check-file-naming
+        name: Check file naming conventions
+        entry: python ../scripts/shared/check_file_naming.py
+        language: system
+        types: [text]
+        files: \.(md|sh)$
+        pass_filenames: true
+      - id: validate-enforcement-block
+        name: Validate standards enforcement block
+        entry: python ../scripts/shared/validate_enforcement_block.py
+        language: system
+        files: ^standards/
   - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
     rev: v1.3.3
     hooks:

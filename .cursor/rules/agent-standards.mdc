@@ -1,0 +1,6 @@
+---
+description: Agent workflow and behavior from standards submodule
+alwaysApply: true
+---
+
+Apply the rules in standards/full/agent.md to all tasks. Reference that file for plan mode, subagents, verification, bug fixing, and task management.

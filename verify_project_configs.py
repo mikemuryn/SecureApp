@@ -8,7 +8,7 @@ PROJECTS_DIR = Path.home() / "DevelopmentProjects"
 PROJECTS = {
     "SecureApp": {
         "package_dir": "app",
-        "expected_standards_ref": "ENGINEERING_STANDARDS_MASTER.md",
+        "expected_standards_ref": "standards/full/engineering.md",
     },
     "QuantFramework": {
         "package_dir": "trading",

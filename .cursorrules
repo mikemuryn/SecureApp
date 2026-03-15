@@ -12,7 +12,7 @@
 ## Engineering Standards
 
 **All coding standards, guidelines, and technical requirements are defined in:**
-- `ENGINEERING_STANDARDS_MASTER.md` (project root)
+- `standards/full/engineering.md` (standards submodule)
 
 This includes:
 - Code style (PEP 8, black, type hints, formatting)
@@ -22,9 +22,12 @@ This includes:
 - Performance guidelines
 - And all other engineering standards
 
-**Always reference and enforce `ENGINEERING_STANDARDS_MASTER.md` for all code-related decisions.**
+**Always reference and enforce `standards/full/engineering.md` for all code-related decisions.**
 
 ## Communication Style
+
+**Voice and communication standards are defined in:**
+- `standards/full/voice.md` (standards submodule)
 
 When communicating with the user, writing code comments, documentation, or any text output:
 

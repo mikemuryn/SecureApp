@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "contextFiles": [
+    "standards/full/engineering.md",
+    "standards/full/voice.md",
+    "standards/full/agent.md"
+  ],
+  "rules": [
+    "Always follow all requirements defined in standards/full/engineering.md.",
+    "For all Python code: enforce PEP 8 formatting, complete type hints, mypy compliance, Google-style docstrings, and structured logging with ISO timestamps.",
+    "All production Python code must include tests (pytest + pytest-cov) and target ≥95% coverage before merge.",
+    "Functions in Python should generally be under 30 lines and maintain cyclomatic complexity ≤10; if longer or more complex, explicitly justify and refactor where possible.",
+    "Never hardcode credentials, API keys, tokens, SMTP info, or secrets. Use .env or secure keyring access as described in standards/full/engineering.md.",
+    "All outbound and alert-related code (email, SMS, Slack, etc.) must implement a common interface and must log delivery attempts, trigger conditions, timestamps, and success/failure.",
+    "Refactoring and new feature development must be separate commits and use Conventional Commits (feat:, fix:, refactor:, test:, docs:, chore:).",
+    "When generating or editing code in any language, prefer clarity, maintainability, and observability over cleverness.",
+    "For configuration files (YAML/TOML/JSON): keep them minimal, explicit, and environment-agnostic when possible. Do not inline secrets.",
+    "All logging must be structured, must not silently swallow exceptions, and must surface enough context to debug in production.",
+    "Before finalizing major changes, re-check standards/full/engineering.md and explain how the change stays compliant."
+  ]
+}

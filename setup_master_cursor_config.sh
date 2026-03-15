@@ -134,7 +134,7 @@ if [ ! -f "$MASTER_CONFIG_DIR/.cursorrules" ]; then
 ## Engineering Standards
 
 **All coding standards, guidelines, and technical requirements are defined in:**
-- `ENGINEERING_STANDARDS_MASTER.md` (project root, if present)
+- `standards/full/engineering.md` (standards submodule)
 
 **Always reference and enforce engineering standards for all code-related decisions.**
 EOF
