@@ -12,7 +12,9 @@ venv/
 # IDE/Editor
 .vscode/
 .idea/
-.cursor/
+.cursor/*
+!.cursor/config.json
+!.cursor/rules/
 *.code-workspace
 *.swp
 *.swo

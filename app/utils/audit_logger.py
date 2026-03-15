@@ -6,7 +6,7 @@ Handles security audit logging and monitoring
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class AuditLogger:
     """Handles security audit logging"""
 
-    def __init__(self, log_file: Path, db_manager: Optional[Any] = None) -> None:
+    def __init__(self, log_file: Path, db_manager: Any | None = None) -> None:
         self.log_file = log_file
         self.db_manager = db_manager
 
@@ -47,14 +47,14 @@ class AuditLogger:
 
     def log_event(
         self,
-        user_id: Optional[int] = None,
-        username: Optional[str] = None,
+        user_id: int | None = None,
+        username: str | None = None,
         action: str = "",
-        resource: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        resource: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
         success: bool = True,
-        details: Optional[str] = None,
+        details: str | None = None,
     ) -> None:
         """
         Log an audit event
@@ -152,7 +152,7 @@ class AuditLogger:
             logger.warning("Database logging not available")
 
     def log_login_attempt(
-        self, username: str, success: bool, ip_address: Optional[str] = None
+        self, username: str, success: bool, ip_address: str | None = None
     ) -> None:
         """Log login attempt"""
         self.log_event(
@@ -163,7 +163,7 @@ class AuditLogger:
             details="Login attempt",
         )
 
-    def log_logout(self, username: str, ip_address: Optional[str] = None) -> None:
+    def log_logout(self, username: str, ip_address: str | None = None) -> None:
         """Log user logout"""
         self.log_event(
             username=username,
@@ -210,7 +210,7 @@ class AuditLogger:
         event_type: str,
         details: str,
         *,
-        resource: Optional[str] = None,
+        resource: str | None = None,
         success: bool = False,
     ) -> None:
         """Log security-related event"""
@@ -223,7 +223,7 @@ class AuditLogger:
         )
 
     def get_recent_events(
-        self, *, hours: Optional[int] = 24, limit: Optional[int] = 100
+        self, *, hours: int | None = 24, limit: int | None = 100
     ) -> list:
         """Get recent audit events from database"""
         if self.db_manager is None:

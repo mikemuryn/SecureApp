@@ -42,7 +42,7 @@ def update_workspace_file(project_name: str):
         return False
 
     # Read existing workspace
-    with open(workspace_file, "r", encoding="utf-8") as f:
+    with open(workspace_file, encoding="utf-8") as f:
         workspace = json.load(f)
 
     # Ensure settings object exists

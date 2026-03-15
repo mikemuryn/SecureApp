@@ -468,7 +468,7 @@ def test_export_file_list_csv(setup_users):
     assert export_path.exists()
 
     # Verify CSV content
-    with open(export_path, "r", encoding="utf-8") as f:
+    with open(export_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
         assert len(rows) >= 3

@@ -7,7 +7,6 @@ Uses git diff to understand actual changes, not just filenames.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 
 # Try to load .env file if python-dotenv is available
 try:
@@ -19,7 +18,7 @@ except ImportError:
     pass
 
 
-def get_git_changes() -> Optional[Dict]:
+def get_git_changes() -> dict | None:
     """Get git diff and status information."""
     try:
         # Get staged changes
@@ -72,7 +71,7 @@ def get_git_changes() -> Optional[Dict]:
         return None
 
 
-def analyze_diff_content(diff: str, files: List[str]) -> Dict:
+def analyze_diff_content(diff: str, files: list[str]) -> dict:
     """Analyze git diff to understand what actually changed."""
     diff_lower = diff.lower()
 
@@ -152,7 +151,7 @@ def analyze_diff_content(diff: str, files: List[str]) -> Dict:
     }
 
 
-def categorize_files(files: List[str]) -> Dict[str, List[str]]:
+def categorize_files(files: list[str]) -> dict[str, list[str]]:
     """Categorize files by type."""
     categories = {
         "features": [],
@@ -185,7 +184,7 @@ def categorize_files(files: List[str]) -> Dict[str, List[str]]:
     return categories
 
 
-def generate_commit_message(changes: Dict, analysis: Dict, categories: Dict) -> str:
+def generate_commit_message(changes: dict, analysis: dict, categories: dict) -> str:
     """Generate a meaningful commit message based on analysis."""
     files = changes["staged_files"] + changes["untracked"]
     total_files = len(files)

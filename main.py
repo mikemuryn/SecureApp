@@ -89,7 +89,7 @@ class SecureApp:
         """Load theme preference from file"""
         try:
             if self.theme_pref_file.exists():
-                with open(self.theme_pref_file, "r") as f:
+                with open(self.theme_pref_file) as f:
                     data = json.load(f)
                     return data.get("theme", "dark")
         except Exception:

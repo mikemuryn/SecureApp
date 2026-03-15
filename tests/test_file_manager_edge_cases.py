@@ -535,7 +535,7 @@ def test_export_file_list_with_missing_fields(setup_user):
     assert export_path.exists()
 
     # Verify CSV has data
-    with open(export_path, "r", encoding="utf-8") as f:
+    with open(export_path, encoding="utf-8") as f:
         lines = f.readlines()
         assert len(lines) >= 2  # Header + at least one row
 

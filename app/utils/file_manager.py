@@ -13,7 +13,7 @@ import shutil
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class FileListResult:
     """List-like wrapper that also exposes the total record count."""
 
-    def __init__(self, files: List[Dict], total: int):
+    def __init__(self, files: list[dict], total: int):
         self._files = files
         self.total = total
 
@@ -47,7 +47,7 @@ class FileListResult:
         return f"FileListResult(files={self._files!r}, total={self.total})"
 
     @property
-    def files(self) -> List[Dict]:
+    def files(self) -> list[dict]:
         """Access the underlying file metadata list."""
         return self._files
 
@@ -69,7 +69,7 @@ class FileAccessManager:
 
     def upload_file(
         self, file_path: Path, username: str, password: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Upload and encrypt a file
 
@@ -213,7 +213,7 @@ class FileAccessManager:
 
     def download_file(
         self, file_id: int, username: str, password: str
-    ) -> Tuple[bool, Optional[Path], str]:
+    ) -> tuple[bool, Path | None, str]:
         """
         Download and decrypt a file
 
@@ -292,7 +292,7 @@ class FileAccessManager:
             return False, None, f"Download failed: {str(e)}"
 
     def list_user_files(
-        self, username: str, limit: Optional[int] = None, offset: int = 0
+        self, username: str, limit: int | None = None, offset: int = 0
     ) -> FileListResult:
         """
         List files accessible to a user with optional pagination.
@@ -309,7 +309,7 @@ class FileAccessManager:
                 if not user:
                     return FileListResult([], 0)
 
-                def _build_entry(file_obj) -> Dict:
+                def _build_entry(file_obj) -> dict:
                     tags = [tag.tag_name for tag in file_obj.tags]
                     return {
                         "id": file_obj.id,
@@ -369,7 +369,7 @@ class FileAccessManager:
             logger.error("Failed to list files for %s: %s", username, e)
             return FileListResult([], 0)
 
-    def delete_file(self, file_id: int, username: str) -> Tuple[bool, str]:
+    def delete_file(self, file_id: int, username: str) -> tuple[bool, str]:
         """
         Delete a file
 
@@ -442,9 +442,7 @@ class FileAccessManager:
         """Create a random per-file secret used for encryption."""
         return base64.urlsafe_b64encode(os.urandom(32)).decode("utf-8")
 
-    def _create_encryption_context(
-        self, secret: str, salt: Optional[bytes] = None
-    ) -> Any:
+    def _create_encryption_context(self, secret: str, salt: bytes | None = None) -> Any:
         """
         Instantiate the configured encryption manager with optional salt support.
 
@@ -503,8 +501,8 @@ class FileAccessManager:
         return False
 
     def create_file_version(
-        self, file_id: int, username: str, password: str, notes: Optional[str] = None
-    ) -> Tuple[bool, str]:
+        self, file_id: int, username: str, password: str, notes: str | None = None
+    ) -> tuple[bool, str]:
         """Create a new version of an existing file"""
         try:
             session = self.db_manager.get_session()
@@ -531,7 +529,7 @@ class FileAccessManager:
             logger.error(f"Version creation failed: {e}")
             return False, f"Version creation failed: {str(e)}"
 
-    def list_file_versions(self, file_id: int) -> List[Dict]:
+    def list_file_versions(self, file_id: int) -> list[dict]:
         """List all versions of a file"""
         try:
             session = self.db_manager.get_session()
@@ -581,8 +579,8 @@ class FileAccessManager:
         file_id: int,
         username: str,
         tag_name: str,
-        tag_color: Optional[str] = None,
-    ) -> Tuple[bool, str]:
+        tag_color: str | None = None,
+    ) -> tuple[bool, str]:
         """Add a tag to a file"""
         try:
             session = self.db_manager.get_session()
@@ -657,7 +655,7 @@ class FileAccessManager:
             logger.error(f"Failed to remove tag: {e}")
             return False, f"Failed to remove tag: {str(e)}"
 
-    def get_file_tags(self, file_id: int) -> List[Dict]:
+    def get_file_tags(self, file_id: int) -> list[dict]:
         """Get all tags for a file"""
         try:
             session = self.db_manager.get_session()
@@ -683,7 +681,7 @@ class FileAccessManager:
         owner_username: str,
         shared_with_username: str,
         permission_type: str = "read",
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Share a file with another user"""
         try:
             session = self.db_manager.get_session()
@@ -755,7 +753,7 @@ class FileAccessManager:
 
     def revoke_file_share(
         self, file_id: int, owner_username: str, shared_with_username: str
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """Revoke file sharing with a user"""
         try:
             session = self.db_manager.get_session()
@@ -868,7 +866,7 @@ class FileAccessManager:
                 backup_dir.mkdir(parents=True, exist_ok=True)
 
                 # Export database info
-                db_info: Dict[str, Any] = {
+                db_info: dict[str, Any] = {
                     "users": [],
                     "files": [],
                     "backup_date": datetime.utcnow().isoformat(),

@@ -7,7 +7,7 @@ import logging
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,9 @@ class BackupScheduler:
         self.interval_hours = interval_hours
         self.enabled = enabled
         self.running = False
-        self.scheduler_thread: Optional[threading.Thread] = None
+        self.scheduler_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
-        self._next_run: Optional[datetime] = None
+        self._next_run: datetime | None = None
 
         # Create backup directory if it doesn't exist
         self.backup_directory.mkdir(parents=True, exist_ok=True)
@@ -136,7 +136,7 @@ class BackupScheduler:
         """Check if scheduler is running"""
         return self.running
 
-    def get_next_backup_time(self) -> Optional[datetime]:
+    def get_next_backup_time(self) -> datetime | None:
         """Get the scheduled time for next backup"""
         if not self.running:
             return None

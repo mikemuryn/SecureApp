@@ -7,7 +7,6 @@ import base64
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from cryptography.exceptions import InvalidTag
 from cryptography.fernet import Fernet
@@ -24,7 +23,7 @@ TAG_SIZE = 16
 class FileEncryption:
     """Handles encryption and decryption of files."""
 
-    def __init__(self, password: str, salt: Optional[bytes] = None):
+    def __init__(self, password: str, salt: bytes | None = None):
         """
         Initialize encryption with password and optional salt.
 
@@ -114,9 +113,7 @@ class FileEncryption:
                 "Failed to decrypt file; the password or data may be incorrect."
             ) from exc
 
-    def encrypt_file(
-        self, file_path: Path, encrypted_path: Optional[Path] = None
-    ) -> Path:
+    def encrypt_file(self, file_path: Path, encrypted_path: Path | None = None) -> Path:
         """
         Encrypt a file and save to encrypted location
 
@@ -154,7 +151,7 @@ class FileEncryption:
             raise
 
     def decrypt_file(
-        self, encrypted_path: Path, output_path: Optional[Path] = None
+        self, encrypted_path: Path, output_path: Path | None = None
     ) -> Path:
         """
         Decrypt a file and save to output location

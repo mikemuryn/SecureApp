@@ -159,9 +159,9 @@ class TestFileEncryption:
         assert os.path.exists(decrypted_path)
 
         # Verify content
-        with open(temp_file, "r") as original:
+        with open(temp_file) as original:
             original_content = original.read()
-        with open(decrypted_path, "r") as decrypted:
+        with open(decrypted_path) as decrypted:
             decrypted_content = decrypted.read()
 
         assert original_content == decrypted_content
@@ -214,7 +214,7 @@ class TestAuditLogger:
 
         # Check if log file was created and has content
         assert os.path.exists(audit_logger.log_file)
-        with open(audit_logger.log_file, "r") as f:
+        with open(audit_logger.log_file) as f:
             content = f.read()
             assert username in content
             assert "LOGIN" in content
@@ -226,7 +226,7 @@ class TestAuditLogger:
 
         # Check if log file was created and has content
         assert os.path.exists(audit_logger.log_file)
-        with open(audit_logger.log_file, "r") as f:
+        with open(audit_logger.log_file) as f:
             content = f.read()
             assert username in content
             assert "LOGOUT" in content

@@ -6,7 +6,6 @@ Handles user sessions, timeouts, and security
 import logging
 import secrets
 from datetime import datetime, timedelta
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +14,7 @@ class SessionManager:
     """Manages user sessions and security"""
 
     def __init__(self, session_timeout: int = 1800):  # 30 minutes default
-        self.sessions: Dict[str, dict] = {}
+        self.sessions: dict[str, dict] = {}
         self.session_timeout = session_timeout
         self.max_sessions_per_user = 3
 
@@ -55,7 +54,7 @@ class SessionManager:
         logger.info(f"Session created for user: {username}")
         return session_token
 
-    def validate_session(self, session_token: str) -> tuple[bool, Optional[dict]]:
+    def validate_session(self, session_token: str) -> tuple[bool, dict | None]:
         """
         Validate session token
 
@@ -178,7 +177,7 @@ class SessionManager:
         if sessions_to_remove:
             logger.info(f"Cleaned up {len(sessions_to_remove)} expired sessions")
 
-    def get_active_sessions(self) -> Dict[str, dict]:
+    def get_active_sessions(self) -> dict[str, dict]:
         """Get all active sessions"""
         self.cleanup_expired_sessions()
         return self.sessions.copy()

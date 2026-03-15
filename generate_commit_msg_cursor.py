@@ -6,10 +6,9 @@ Formats git diff for easy copy-paste into Cursor chat.
 
 import subprocess
 import sys
-from typing import Optional
 
 
-def get_git_changes() -> Optional[dict]:
+def get_git_changes() -> dict | None:
     """Get git diff and status information."""
     try:
         staged_files = (
